@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الموقع العام</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f4f4f9; padding: 50px; }
+    .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; max-width: 80%; }
+    h1 { color: #333; }
+    p { font-size: 1.5rem; color: #007bff; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>أحدث رسالة من الإدارة 📢</h1>
+    <p id="message">جاري تحميل الرسالة...</p>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    // ضع رابط قاعدة البيانات الخاصة بك هنا
+    const firebaseConfig = {
+      databaseURL: "YOUR_DATABASE_URL" 
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    // الاستماع للتغييرات بشكل لحظي
+    const messageRef = firebase.database().ref('liveMessage');
+    messageRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      document.getElementById('message').innerText = data ? data : "لا توجد رسائل حالياً";
+    });
+  </script>
+
+</body>
+</html>

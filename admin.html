@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم - الأدمن</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #222; color: white; padding: 50px; }
+    .box { background: #333; padding: 30px; border-radius: 10px; display: inline-block; width: 90%; max-width: 400px; }
+    textarea { width: 90%; height: 100px; margin-bottom: 10px; font-size: 1rem; padding: 10px; }
+    button { background: #28a745; color: white; border: none; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #218838; }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <h2>لوحة إرسال الرسائل 🛠️</h2>
+    <textarea id="adminInput" placeholder="اكتب الرسالة هنا..."></textarea><br>
+    <button onclick="sendMessage()">نشر للجميع 🚀</button>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    // ضع رابط قاعدة البيانات الخاصة بك هنا
+    const firebaseConfig = {
+      databaseURL: "YOUR_DATABASE_URL" 
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    function sendMessage() {
+      const text = document.getElementById('adminInput').value;
+      if(text.trim() === "") return alert("الرجاء كتابة رسالة أولاً!");
+
+      firebase.database().ref('liveMessage').set(text)
+      .then(() => {
+        alert("تم نشر الرسالة للجميع بنجاح!");
+        document.getElementById('adminInput').value = "";
+      })
+      .catch((error) => {
+        alert("حدث خطأ: " + error.message);
+      });
+    }
+  </script>
+
+</body>
+</html>

@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>لوحة التحكم - الأدمن</title>
   <style>
-    body { font-family: sans-serif; text-align: center; background: #222; color: white; padding: 50px; }
-    .box { background: #333; padding: 30px; border-radius: 10px; display: inline-block; width: 90%; max-width: 400px; }
-    textarea { width: 90%; height: 100px; margin-bottom: 10px; font-size: 1rem; padding: 10px; }
-    button { background: #28a745; color: white; border: none; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 5px; }
+    body { font-family: sans-serif; background: #222; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .box { background: #333; padding: 20px; border-radius: 10px; text-align: center; width: 90%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    textarea { width: 90%; height: 100px; margin: 15px 0; padding: 10px; border-radius: 5px; border: none; font-size: 16px; }
+    button { background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; }
     button:hover { background: #218838; }
   </style>
 </head>
@@ -16,28 +16,29 @@
 
   <div class="box">
     <h2>لوحة إرسال الرسائل 🛠️</h2>
-    <textarea id="adminInput" placeholder="اكتب الرسالة هنا..."></textarea><br>
+    <textarea id="adminInput" placeholder="اكتب رسالتك هنا..."></textarea><br>
     <button onclick="sendMessage()">نشر للجميع 🚀</button>
   </div>
 
-  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // ضع رابط قاعدة البيانات الخاصة بك هنا
     const firebaseConfig = {
-      databaseURL: "YOUR_DATABASE_URL" 
+      databaseURL: "https://chatity-2da63-default-rtdb.firebaseio.com/"
     };
     firebase.initializeApp(firebaseConfig);
 
     function sendMessage() {
       const text = document.getElementById('adminInput').value;
-      if(text.trim() === "") return alert("الرجاء كتابة رسالة أولاً!");
+      if(text.trim() === "") return alert("اكتب رسالة أولاً!");
 
-      firebase.database().ref('liveMessage').set(text)
+      firebase.database().ref('liveMessage').set({
+        msg: text,
+        time: new Date().toLocaleTimeString('ar-EG')
+      })
       .then(() => {
-        alert("تم نشر الرسالة للجميع بنجاح!");
+        alert("!تم نشر الرسالة للجميع بنجاح");
         document.getElementById('adminInput').value = "";
       })
       .catch((error) => {

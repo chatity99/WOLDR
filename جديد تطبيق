@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatity App</title>
+    <!-- مكتبات Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: Tahoma, sans-serif; }
+        body { background-color: #e9efe9; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 450px; background: white; border-radius: 12px; height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        
+        /* شاشة الدخول */
+        #login-screen { padding: 40px 20px; text-align: center; margin: auto 0; }
+        .google-btn { background: #4285F4; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; width: 100%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        /* شاشة المحادثة */
+        #chat-screen { display: none; flex-direction: column; height: 100%; }
+        .header { background: #075e54; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .user-info { font-size: 13px; opacity: 0.9; }
+        .logout-btn { background: #d32f2f; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        
+        .messages-box { flex: 1; padding: 15px; overflow-y: auto; background: #efeae2; display: flex; flex-direction: column; gap: 10px; }
+        .msg { background: white; padding: 8px 12px; border-radius: 8px; max-width: 80%; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.2); font-size: 14px; }
+        .msg .sender { font-size: 11px; font-weight: bold; color: #075e54; margin-bottom: 3px; display: block; }
+        .msg.founder .sender { color: #d32f2f; }
+        .msg.helper .sender { color: #1976d2; }
+        
+        .input-area { padding: 10px; background: #f0f0f0; display: flex; gap: 5px; }
+        .input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .input-area button { background: #075e54; color: white; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold; }
+        
+        #loading { text-align: center; margin: auto; font-size: 16px; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="loading">جاري التحقق من الحساب...</div>
+
+    <!-- 1. شاشة تسجيل الدخول -->
+    <div id="login-screen" style="display: none;">
+        <h2 style="color: #075e54;">مرحباً بك في Chatity</h2>
+        <p style="color: #666; margin-bottom: 30px;">سجل دخولك لبدء المحادثة</p>
+        <button class="google-btn" onclick="loginWithGoogle()">
+            التسجيل بواسطة Google
+        </button>
+    </div>
+
+    <!-- 2. شاشة المحادثة -->
+    <div id="chat-screen">
+        <div class="header">
+            <div>
+                <div id="user-name-display">Chatity</div>
+                <div class="user-info" id="user-role-display">مستخدم</div>
+            </div>
+            <button class="logout-btn" onclick="logout()">خروج</button>
+        </div>
+        <div class="messages-box" id="messages-box"></div>
+        <div class="input-area">
+            <input type="text" id="message-input" placeholder="اكتب رسالة...">
+            <button onclick="sendMessage()">إرسال</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // الإعدادات الخاصة بمشروعك
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJi3vI17B3pI7KF3c8CemUL0EB8s0XCDg",
+      authDomain: "chatity-2da63.firebaseapp.com",
+      databaseURL: "https://chatity-2da63-default-rtdb.firebaseio.com",
+      projectId: "chatity-2da63",
+      storageBucket: "chatity-2da63.firebasestorage.app",
+      messagingSenderId: "68253755871",
+      appId: "1:68253755871:web:5da50607c18b9b0218bc6a"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+    let userRole = "user";
+
+    // البقاء على تسجيل الدخول تلقائياً (Persistent Session)
+    auth.onAuthStateChanged((user) => {
+        document.getElementById('loading').style.display = 'none';
+        if (user) {
+            currentUser = user;
+            loadUserData(user);
+        } else {
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('chat-screen').style.display = 'none';
+        }
+    });
+
+    function loginWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch((error) => {
+            alert("خطأ في تسجيل الدخول: " + error.message);
+        });
+    }
+
+    function logout() {
+        auth.signOut();
+    }
+
+    function loadUserData(user) {
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            userRole = data.role || "user";
+
+            if (!snapshot.exists()) {
+                db.ref('users/' + user.uid).set({
+                    name: user.displayName,
+                    email: user.email,
+                    role: "user"
+                });
+            }
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+            document.getElementById('user-name-display').innerText = user.displayName;
+            document.getElementById('user-role-display').innerText = `الرتبة: ${userRole}`;
+
+            listenToMessages();
+        });
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('message-input');
+        const text = input.value.trim();
+        if (!text || !currentUser) return;
+
+        db.ref("global_chat").push({
+            senderUid: currentUser.uid,
+            senderName: currentUser.displayName,
+            role: userRole,
+            text: text,
+            timestamp: Date.now()
+        });
+
+        input.value = "";
+    }
+
+    let isListening = false;
+    function listenToMessages() {
+        if (isListening) return;
+        isListening = true;
+        const box = document.getElementById('messages-box');
+        box.innerHTML = "";
+
+        db.ref("global_chat").on("child_added", (snapshot) => {
+            const msg = snapshot.val();
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${msg.role}`;
+            
+            let roleTag = msg.role === 'founder' ? ' [Founder]' : (msg.role === 'helper' ? ' [Helper]' : '');
+            
+            msgDiv.innerHTML = `
+                <span class="sender">${msg.senderName}${roleTag}</span>
+                <div>${msg.text}</div>
+            `;
+            
+            box.appendChild(msgDiv);
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+</script>
+
+</body>
+</html>

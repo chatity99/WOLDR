@@ -6,33 +6,39 @@
   <title>Chatity Super App</title>
   <style>
     :root { --primary: #075e54; --secondary: #128c7e; --bg: #efeae2; --accent: #fe2c55; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #f4f5f7; display: flex; justify-content: center; height: 100vh; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+    body { background: #f4f5f7; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
     .app-container { width: 100%; max-width: 480px; background: #fff; display: flex; flex-direction: column; height: 100%; position: relative; }
     
-    .header { background: var(--primary); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
-    .header-tools { display: flex; align-items: center; gap: 12px; }
-    .tool-icon-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; position: relative; }
+    .header { background: var(--primary); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    .header-tools { display: flex; align-items: center; gap: 10px; }
+    .tool-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; position: relative; }
     .notif-badge { position: absolute; top: -3px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 10px; padding: 1px 4px; font-weight: bold; }
 
-    .nav-tabs { display: flex; background: var(--secondary); }
-    .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; color: #fff; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; }
+    .nav-tabs { display: flex; background: var(--secondary); transition: all 0.2s; }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #fff; font-weight: bold; cursor: pointer; font-size: 12px; text-align: center; }
     .tab-btn.active { border-bottom: 3px solid #fff; background: rgba(255,255,255,0.15); }
 
-    .content-area { flex: 1; overflow-y: auto; padding: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+    .group-header { display: none; background: var(--primary); color: #fff; padding: 10px; align-items: center; justify-content: space-between; z-index: 11; }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
     
+    .msg-wrapper { display: flex; flex-direction: column; transition: transform 0.2s; touch-action: pan-y; }
     .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; position: relative; word-break: break-word; }
     .msg.me { margin-right: auto; background: #dcf8c6; }
+    .msg-highlight { animation: highlightAnim 1.5s ease; }
+    @keyframes highlightAnim { 0% { background: #fff9c4; } 100% { background: #fff; } }
+
     .msg-header { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
     .avatar-mini { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
-    
     .badge-blue { background: #1da1f2; color: #fff; border-radius: 50%; padding: 0 4px; font-size: 10px; }
     .badge-black { background: #000; color: #fff; border-radius: 50%; padding: 0 4px; font-size: 10px; }
 
     .msg img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
-    .reactions-list { display: flex; gap: 4px; font-size: 12px; margin-top: 4px; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 10px; width: fit-content; }
+    .msg audio { width: 200px; height: 35px; margin-top: 4px; }
+    .reaction-badge { position: absolute; bottom: -8px; left: 8px; background: #fff; border-radius: 10px; padding: 1px 5px; font-size: 11px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
-    .reply-preview { background: rgba(0,0,0,0.06); border-right: 3px solid var(--primary); padding: 4px 8px; font-size: 11px; border-radius: 4px; margin-bottom: 4px; }
+    .reply-preview { background: rgba(0,0,0,0.06); border-right: 3px solid var(--primary); padding: 4px 8px; font-size: 11px; border-radius: 4px; margin-bottom: 4px; cursor: pointer; }
 
     .input-area { padding: 8px; background: #f0f0f0; display: none; gap: 6px; align-items: center; }
     .input-area input[type="text"] { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
@@ -40,7 +46,7 @@
     .btn-send { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
     .profile-card { display: flex; flex-direction: column; align-items: center; padding: 15px; background: #fff; border-radius: 12px; position: relative; }
-    .btn-close-profile { position: absolute; top: 10px; left: 10px; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; font-weight: bold; cursor: pointer; }
+    .btn-close { position: absolute; top: 10px; left: 10px; background: #eee; border: none; border-radius: 50%; width: 30px; height: 30px; font-weight: bold; cursor: pointer; }
     .profile-avatar { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; margin-bottom: 8px; }
 
     .user-item { background: #fff; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -79,6 +85,8 @@
     let activeDM = null;
     let activeGroup = null;
     let replyingTo = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
 
     window.loginWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
     window.logout = () => signOut(auth);
@@ -86,71 +94,135 @@
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'flex';
-
-        onValue(ref(db, 'users/' + user.uid), (snapshot) => {
-          userData = snapshot.val() || {};
-          if (!snapshot.exists()) {
-            const baseUser = user.email.split('@')[0];
-            userData = { 
-              name: user.displayName || 'مستخدم', 
-              username: baseUser.length < 2 ? baseUser + '12' : baseUser, 
-              photo: user.photoURL || 'https://via.placeholder.com/85', 
-              role: 'user', 
-              verified: false, 
-              bio: 'أهلاً بك في حسابي!',
-              followersCount: 0,
-              followingCount: 0,
-              isBanned: false,
-              isMuted: false,
-              muteUntil: 0
-            };
-            set(ref(db, 'users/' + user.uid), userData);
-          }
-
+        const snap = await get(ref(db, 'users/' + user.uid));
+        
+        if (!snap.exists()) {
+          openSetupAccountModal(user);
+        } else {
+          userData = snap.val();
           if (userData.isBanned) {
-            alert('تم حظر حسابك من التطبيق!');
+            alert('حسابك محظور من استخدام التطبيق!');
             signOut(auth);
             return;
           }
-
-          document.getElementById('user-header-info').innerText = `${userData.name} [${userData.role}]`;
-          document.getElementById('btn-shield').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
-        });
-
-        listenNotifications();
-        switchTab('public');
+          initApp();
+        }
       } else {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('app-screen').style.display = 'none';
       }
     });
 
+    function openSetupAccountModal(user) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'flex';
+      
+      document.getElementById('modal-content').innerHTML = `
+        <h3>إكمال إعداد الحساب 👤</h3>
+        <p style="font-size:12px;color:#666;">يرجى اختيار اسم ويوزر لتحديد هويتك</p>
+        <input type="text" id="setup-name" class="form-input" value="${user.displayName || ''}" placeholder="الاسم الشخصي">
+        <input type="text" id="setup-username" class="form-input" placeholder="اسم المستخدم (ثنائي فما فوق)">
+        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="completeSetup('${user.uid}', '${user.photoURL}')">حفظ والدخول</button>
+      `;
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    window.completeSetup = async (uid, photo) => {
+      const name = document.getElementById('setup-name').value.trim();
+      let username = document.getElementById('setup-username').value.trim().replace('@', '');
+
+      if (username.length < 2) {
+        alert('اسم المستخدم يجب أن يتكون من حرفين أو أكثر!');
+        return;
+      }
+
+      const uSnap = await get(ref(db, 'users'));
+      let exists = false;
+      uSnap.forEach(c => { if(c.val().username?.toLowerCase() === username.toLowerCase()) exists = true; });
+
+      if (exists) { alert('اسم المستخدم مأخوذ بالفعل!'); return; }
+
+      userData = {
+        name: name || 'مستخدم',
+        username: username,
+        photo: photo || 'https://via.placeholder.com/85',
+        role: 'user',
+        verified: false,
+        bio: 'أهلاً بك في حسابي!',
+        isBanned: false,
+        isMuted: false,
+        muteUntil: 0
+      };
+
+      await set(ref(db, 'users/' + uid), userData);
+      closeModal();
+      initApp();
+    };
+
+    function initApp() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'flex';
+
+      onValue(ref(db, 'users/' + currentUser.uid), (s) => {
+        if(s.exists()) {
+          userData = s.val();
+          document.getElementById('user-header-info').innerText = `${userData.name} [${userData.role}]`;
+          document.getElementById('btn-shield').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
+          document.getElementById('btn-support').style.display = 'inline-block';
+        }
+      });
+
+      listenNotifications();
+      switchTab('public');
+    }
+
     window.switchTab = (tab, targetId = null) => {
       currentTab = tab;
       activeDM = (tab === 'dm') ? targetId : null;
       activeGroup = (tab === 'group') ? targetId : null;
+
+      document.getElementById('main-nav').style.display = (tab === 'group') ? 'none' : 'flex';
+      document.getElementById('group-header').style.display = (tab === 'group') ? 'flex' : 'none';
 
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       const activeBtn = document.getElementById(`tab-${tab}`);
       if (activeBtn) activeBtn.classList.add('active');
 
       const inputArea = document.getElementById('input-area');
-      const canSend = (tab === 'public') ||
-                      (tab === 'dm') ||
-                      (tab === 'group') ||
+      const canSend = (tab === 'public') || (tab === 'dm') || (tab === 'group') ||
                       (tab === 'announcements' && userData.role === 'founder') ||
-                      (tab === 'shield' && userData.role === 'founder');
+                      (tab === 'shield' && (userData.role === 'founder' || userData.role === 'helper'));
 
       inputArea.style.display = canSend ? 'flex' : 'none';
 
       if (tab === 'search') renderSearch();
-      else if (tab === 'profile') renderProfile(currentUser.uid);
+      else if (tab === 'profile') renderProfile(targetId || currentUser.uid);
       else if (tab === 'inbox') renderInbox();
       else if (tab === 'dm') loadDMMessages(targetId);
-      else if (tab === 'group') loadGroupMessages(targetId);
+      else if (tab === 'group') loadGroupHeaderAndMessages(targetId);
       else loadMessages(tab);
+    };
+
+    // Voice Recording
+    window.toggleVoiceRecord = async () => {
+      const btn = document.getElementById('btn-voice');
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => postMessage({ audio: reader.result });
+        };
+        mediaRecorder.start();
+        btn.innerText = '🔴';
+      } else {
+        mediaRecorder.stop();
+        btn.innerText = '🎙️';
+      }
     };
 
     const fileToBase64 = file => new Promise((resolve, reject) => {
@@ -166,12 +238,12 @@
       try {
         const base64 = await fileToBase64(file);
         postMessage({ image: base64 });
-      } catch (err) { alert('خطأ أثناء تحميل الصورة'); }
+      } catch (err) { alert('خطأ في تحويل الصورة'); }
     };
 
     window.sendMessage = () => {
       if (userData.isMuted && userData.muteUntil > Date.now()) {
-        alert('أنت مكتوم حالياً ولا يمكنك إرسال الرسائل!');
+        alert('أنت مكتوم حالياً ولا يمكنك كتابة الرسائل!');
         return;
       }
       const input = document.getElementById('msg-input');
@@ -196,10 +268,13 @@
       };
 
       if (currentTab === 'dm') {
+        const isBlocked = await checkUserBlocked(activeDM, currentUser.uid);
+        if (isBlocked) { alert('لا يمكنك المراسلة، الحساب قام بحظرك!'); return; }
         const chatKey = [currentUser.uid, activeDM].sort().join('_');
         push(ref(db, `direct_messages/${chatKey}`), msgData);
         set(ref(db, `inbox/${currentUser.uid}/${activeDM}`), { lastUpdated: Date.now() });
         set(ref(db, `inbox/${activeDM}/${currentUser.uid}`), { lastUpdated: Date.now() });
+        push(ref(db, `notifications/${activeDM}`), { type: 'dm', fromName: userData.name, timestamp: Date.now() });
       } else if (currentTab === 'group') {
         push(ref(db, `group_messages/${activeGroup}`), msgData);
       } else {
@@ -216,7 +291,14 @@
       onValue(ref(db, `direct_messages/${chatKey}`), snapshot => renderMessageList(snapshot));
     }
 
-    function loadGroupMessages(groupId) {
+    function loadGroupHeaderAndMessages(groupId) {
+      get(ref(db, 'groups/' + groupId)).then(snap => {
+        if(snap.exists()) {
+          const g = snap.val();
+          document.getElementById('group-title').innerText = g.name;
+          document.getElementById('group-avatar').src = g.photo || 'https://via.placeholder.com/32';
+        }
+      });
       onValue(ref(db, `group_messages/${groupId}`), snapshot => renderMessageList(snapshot));
     }
 
@@ -228,51 +310,81 @@
         const key = child.key;
         const isMyMsg = m.senderUid === currentUser.uid;
 
+        const wrapper = document.createElement('div');
+        wrapper.className = 'msg-wrapper';
+        wrapper.id = `msg-${key}`;
+
         const div = document.createElement('div');
         div.className = `msg ${isMyMsg ? 'me' : ''}`;
 
-        let canDelete = isMyMsg || 
-                        userData.role === 'founder' || 
-                        (userData.role === 'helper' && m.role !== 'founder' && m.role !== 'helper');
+        let canDelete = false;
+        if (userData.role === 'founder') canDelete = true;
+        else if (isMyMsg && userData.role !== 'helper') canDelete = true;
 
         let badgeHtml = '';
         if (m.isVerified) badgeHtml += `<span class="badge-blue">✓</span>`;
         if (m.role === 'helper') badgeHtml += `<span class="badge-black">✓</span>`;
 
-        let replyHtml = m.replyTo ? `<div class="reply-preview"><b>${m.replyTo.name}:</b> ${m.replyTo.text}</div>` : '';
+        let replyHtml = m.replyTo ? `<div class="reply-preview" onclick="scrollToMsg('${m.replyTo.key}')"><b>${m.replyTo.name}:</b> ${m.replyTo.text}</div>` : '';
+
+        let myReaction = (m.reactions && m.reactions[currentUser.uid]) ? m.reactions[currentUser.uid] : '';
 
         div.innerHTML = `
           ${replyHtml}
           <div class="msg-header">
             <img src="${m.photo || 'https://via.placeholder.com/24'}" class="avatar-mini">
-            <span onclick="renderProfile('${m.senderUid}')" style="cursor:pointer">${m.senderName}</span>
+            <span onclick="switchTab('profile', '${m.senderUid}')" style="cursor:pointer">${m.senderName}</span>
             ${badgeHtml}
             ${canDelete ? `<span onclick="deleteMsg('${key}')" style="color:red;cursor:pointer;margin-right:auto;">🗑️</span>` : ''}
           </div>
           ${m.text ? `<div>${m.text.replace(/@everyone/g, '<b style="color:red;background:#fff0f0;padding:0 2px;">@everyone</b>')}</div>` : ''}
           ${m.image ? `<img src="${m.image}" onclick="openLightbox('${m.image}')">` : ''}
+          ${m.audio ? `<audio controls src="${m.audio}"></audio>` : ''}
           <div style="display:flex;gap:6px;margin-top:4px;font-size:11px;color:#777;">
-            <span onclick="setReply('${key}', '${m.senderName}', '${m.text || 'صورة'}')" style="cursor:pointer;">رد ↩️</span>
-            <span onclick="addReaction('${key}', '❤️')" style="cursor:pointer;">❤️</span>
-            <span onclick="addReaction('${key}', '👍')" style="cursor:pointer;">👍</span>
-            <span onclick="addReaction('${key}', '😂')" style="cursor:pointer;">😂</span>
+            <span onclick="setReply('${key}', '${m.senderName}', '${m.text || 'ميديا'}')" style="cursor:pointer;">رد ↩️</span>
+            <span onclick="toggleReaction('${key}', '❤️')" style="cursor:pointer;">❤️</span>
+            <span onclick="toggleReaction('${key}', '👍')" style="cursor:pointer;">👍</span>
+            <span onclick="toggleReaction('${key}', '😂')" style="cursor:pointer;">😂</span>
           </div>
-          ${m.reactions ? `<div class="reactions-list">${Object.values(m.reactions).join(' ')}</div>` : ''}
+          ${myReaction ? `<div class="reaction-badge">${myReaction}</div>` : ''}
         `;
-        box.appendChild(div);
+
+        // Swipe to reply
+        let startX = 0;
+        wrapper.ontouchstart = e => startX = e.touches[0].clientX;
+        wrapper.ontouchend = e => {
+          if (e.changedTouches[0].clientX - startX > 50) {
+            setReply(key, m.senderName, m.text || 'ميديا');
+          }
+        };
+
+        wrapper.appendChild(div);
+        box.appendChild(wrapper);
       });
       box.scrollTop = box.scrollHeight;
     }
+
+    window.scrollToMsg = (key) => {
+      const el = document.getElementById(`msg-${key}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('msg-highlight');
+        setTimeout(() => el.classList.remove('msg-highlight'), 1500);
+      }
+    };
+
+    window.toggleReaction = (key, emoji) => {
+      const path = getPathByTab(key) + `/reactions/${currentUser.uid}`;
+      get(ref(db, path)).then(snap => {
+        if (snap.val() === emoji) remove(ref(db, path));
+        else set(ref(db, path), emoji);
+      });
+    };
 
     window.setReply = (key, name, text) => {
       replyingTo = { key, name, text };
       document.getElementById('reply-preview-box').style.display = 'block';
       document.getElementById('reply-preview-box').innerText = `رد على ${name}: ${text}`;
-    };
-
-    window.addReaction = (msgKey, emoji) => {
-      const path = getPathByTab(msgKey);
-      push(ref(db, `${path}/reactions`), emoji);
     };
 
     window.deleteMsg = (key) => {
@@ -286,12 +398,12 @@
       return `messages/${currentTab}/${key}`;
     }
 
-    // Inbox & Groups
+    // Groups & Inbox
     function renderInbox() {
       const box = document.getElementById('content-box');
       box.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h3>محادثاتي والكروبات 💬</h3>
+          <h3>المحادثات والكروبات 💬</h3>
           <button class="btn-send" onclick="openCreateGroupModal()">+ كروب جديد</button>
         </div>
         <div id="groups-list"></div>
@@ -299,11 +411,10 @@
         <div id="dms-list"></div>
       `;
 
-      // Load Groups
       onValue(ref(db, 'groups'), snapshot => {
         const gBox = document.getElementById('groups-list');
         if (!gBox) return;
-        gBox.innerHTML = '<b>المجموعات:</b>';
+        gBox.innerHTML = '<b>الكروبات:</b>';
         snapshot.forEach(c => {
           const g = c.val();
           if (g.members && g.members[currentUser.uid]) {
@@ -320,7 +431,6 @@
         });
       });
 
-      // Load DMs
       onValue(ref(db, `inbox/${currentUser.uid}`), async (snapshot) => {
         const dBox = document.getElementById('dms-list');
         if (!dBox) return;
@@ -339,7 +449,7 @@
                     <small style="color:#777;">@${u.username}</small>
                   </div>
                 </div>
-                <button class="btn-send" onclick="switchTab('dm', '${targetUid}')">فتح الشات</button>
+                <button class="btn-send" onclick="switchTab('dm', '${targetUid}')">فتح</button>
               </div>
             `;
           }
@@ -347,7 +457,83 @@
       });
     }
 
-    // Profile Render
+    // Group Settings Modal
+    window.openGroupSettings = async () => {
+      const gSnap = await get(ref(db, 'groups/' + activeGroup));
+      if (!gSnap.exists()) return;
+      const g = gSnap.val();
+
+      const isOwner = g.owner === currentUser.uid;
+      const isMod = g.mods && g.mods[currentUser.uid];
+
+      let membersHtml = '';
+      for (let mUid in g.members) {
+        const uSnap = await get(ref(db, 'users/' + mUid));
+        if (uSnap.exists()) {
+          const u = uSnap.val();
+          let roleLabel = mUid === g.owner ? ' [منشئ]' : (g.mods && g.mods[mUid] ? ' [مشرف]' : '');
+          membersHtml += `
+            <div class="user-item">
+              <span>${u.name} ${roleLabel}</span>
+              ${isOwner && mUid !== currentUser.uid ? `
+                <div>
+                  <button onclick="toggleGroupMod('${mUid}')" style="font-size:10px;">${g.mods && g.mods[mUid] ? 'إزالة الإشراف' : 'ترقية لمشرف'}</button>
+                  <button onclick="kickGroupMember('${mUid}')" style="font-size:10px;color:red;">طرد</button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+      }
+
+      document.getElementById('modal-content').innerHTML = `
+        <h3>إعدادات الكروب ⚙️</h3>
+        ${isOwner ? `
+          <input type="text" id="edit-gname" class="form-input" value="${g.name}">
+          <input type="file" id="edit-gphoto" class="form-input" accept="image/*">
+          <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="updateGroupDetails()">حفظ التعديلات</button>
+        ` : ''}
+        <hr style="margin:10px 0;">
+        <b>الأعضاء:</b>
+        <div style="max-height:150px;overflow-y:auto;">${membersHtml}</div>
+        <button class="btn-full" style="background:#f44336;color:#fff;" onclick="leaveGroup()">خروج من الكروب</button>
+        <button class="btn-full" onclick="closeModal()">إغلاق</button>
+      `;
+      document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.updateGroupDetails = async () => {
+      const name = document.getElementById('edit-gname').value.trim();
+      const file = document.getElementById('edit-gphoto').files[0];
+      let updates = { name };
+      if (file) {
+        updates.photo = await fileToBase64(file);
+      }
+      update(ref(db, 'groups/' + activeGroup), updates);
+      closeModal();
+      loadGroupHeaderAndMessages(activeGroup);
+    };
+
+    window.toggleGroupMod = (uid) => {
+      get(ref(db, `groups/${activeGroup}/mods/${uid}`)).then(s => {
+        if (s.exists()) remove(ref(db, `groups/${activeGroup}/mods/${uid}`));
+        else set(ref(db, `groups/${activeGroup}/mods/${uid}`), true);
+        openGroupSettings();
+      });
+    };
+
+    window.kickGroupMember = (uid) => {
+      remove(ref(db, `groups/${activeGroup}/members/${uid}`));
+      openGroupSettings();
+    };
+
+    window.leaveGroup = () => {
+      remove(ref(db, `groups/${activeGroup}/members/${currentUser.uid}`));
+      closeModal();
+      switchTab('inbox');
+    };
+
+    // Profile & Blocking
     window.renderProfile = async (targetUid) => {
       const isSelf = targetUid === currentUser.uid;
       const box = document.getElementById('content-box');
@@ -355,10 +541,14 @@
       onValue(ref(db, 'users/' + targetUid), async (snapshot) => {
         const u = snapshot.val() || {};
         const isFollowing = await checkFollowStatus(targetUid);
+        const isBlocked = await checkUserBlocked(currentUser.uid, targetUid);
+
+        const followsCountSnap = await get(ref(db, `follows/${targetUid}`));
+        const followersCount = followsCountSnap.exists() ? followsCountSnap.size : 0;
 
         box.innerHTML = `
           <div class="profile-card">
-            <button class="btn-close-profile" onclick="switchTab('public')">✖️</button>
+            <button class="btn-close" onclick="switchTab('public')">✖️</button>
             <img src="${u.photo || 'https://via.placeholder.com/85'}" class="profile-avatar">
             
             <h3>
@@ -368,27 +558,34 @@
             </h3>
             <span style="color:#777;font-size:12px;">@${u.username}</span>
 
+            <div style="display:flex;gap:15px;margin:10px 0;font-size:13px;font-weight:bold;">
+              <span>المتابعين: ${followersCount}</span>
+            </div>
+
             <p style="font-size:13px;color:#444;margin:8px 0;">${u.bio || 'لا يوجد وصف'}</p>
 
             ${isSelf ? `
-              <button class="btn-full" style="background:#eee;" onclick="openEditModal()">تعديل الملف الشخصي (Edit)</button>
+              <button class="btn-full" style="background:#eee;" onclick="openEditModal()">تعديل الملف الشخصي</button>
             ` : `
-              <div style="display:flex;gap:6px;width:100%;margin-top:8px;">
+              <div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:8px;">
                 <button class="btn-full" style="background:var(--accent);color:#fff;" onclick="toggleFollow('${targetUid}')">${isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</button>
                 <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="switchTab('dm', '${targetUid}')">مراسلة 💬</button>
+                <button class="btn-full" style="background:#555;color:#fff;" onclick="toggleBlock('${targetUid}')">${isBlocked ? 'إلغاء الحظر الشخصي' : 'حظر الشخص'}</button>
               </div>
             `}
 
-            ${(userData.role === 'founder' || userData.role === 'helper') && !isSelf ? `
+            ${(userData.role === 'founder' || (userData.role === 'helper' && u.role !== 'founder')) && !isSelf ? `
               <div style="margin-top:15px;width:100%;border-top:1px solid #eee;padding-top:10px;">
                 <b style="color:red;">لوحة الإدارة:</b>
                 ${userData.role === 'founder' ? `
-                  <button class="btn-full" style="background:#2196F3;color:#fff;" onclick="toggleVerify('${targetUid}', ${!u.verified})">${u.verified ? 'إزالة التوثيق' : 'منح التوثيق الأزرق ✅'}</button>
-                  <button class="btn-full" style="background:#333;color:#fff;" onclick="setRole('${targetUid}', 'helper')">تعيين Helper (توثيق أسود)</button>
+                  <button class="btn-full" style="background:#2196F3;color:#fff;" onclick="toggleVerify('${targetUid}', ${!u.verified})">${u.verified ? 'إزالة التوثيق' : 'توثيق أزرق ✅'}</button>
+                  <button class="btn-full" style="background:#333;color:#fff;" onclick="setRole('${targetUid}', 'helper')">ترقية الـ Helper</button>
+                  <button class="btn-full" style="background:#000;color:#fff;" onclick="openAdminPunishModal('${targetUid}', 'delete')">حذف الحساب 🗑️</button>
                 ` : ''}
                 <button class="btn-full" style="background:#ff9800;color:#fff;" onclick="openAdminPunishModal('${targetUid}', 'mute')">كتم 🔇</button>
-                <button class="btn-full" style="background:#f44336;color:#fff;" onclick="openAdminPunishModal('${targetUid}', 'ban')">حظر حساب 🚫</button>
-                <button class="btn-full" style="background:#000;color:#fff;" onclick="openAdminPunishModal('${targetUid}', 'delete')">حذف الحساب 🗑️</button>
+                <button class="btn-full" style="background:#4caf50;color:#fff;" onclick="unmuteUser('${targetUid}')">إلغاء الكتم 🔊</button>
+                <button class="btn-full" style="background:#f44336;color:#fff;" onclick="openAdminPunishModal('${targetUid}', 'ban')">حظر التطبيق 🚫</button>
+                <button class="btn-full" style="background:#8bc34a;color:#fff;" onclick="unbanUser('${targetUid}')">إلغاء الحظر 🔓</button>
               </div>
             ` : ''}
           </div>
@@ -397,24 +594,36 @@
     };
 
     async function checkFollowStatus(targetUid) {
-      const snap = await get(ref(db, `follows/${currentUser.uid}/${targetUid}`));
+      const snap = await get(ref(db, `follows/${targetUid}/${currentUser.uid}`));
+      return snap.exists();
+    }
+
+    async function checkUserBlocked(byUid, targetUid) {
+      const snap = await get(ref(db, `blocks/${byUid}/${targetUid}`));
       return snap.exists();
     }
 
     window.toggleFollow = async (targetUid) => {
       const isFollowing = await checkFollowStatus(targetUid);
       if (isFollowing) {
-        remove(ref(db, `follows/${currentUser.uid}/${targetUid}`));
+        remove(ref(db, `follows/${targetUid}/${currentUser.uid}`));
       } else {
-        set(ref(db, `follows/${currentUser.uid}/${targetUid}`), true);
+        set(ref(db, `follows/${targetUid}/${currentUser.uid}`), true);
         push(ref(db, `notifications/${targetUid}`), {
-          type: 'follow', fromUid: currentUser.uid, fromName: userData.name, timestamp: Date.now()
+          type: 'follow', fromName: userData.name, timestamp: Date.now()
         });
       }
       renderProfile(targetUid);
     };
 
-    // Admin Punishments (Mute, Ban, Delete)
+    window.toggleBlock = async (targetUid) => {
+      const isBlocked = await checkUserBlocked(currentUser.uid, targetUid);
+      if (isBlocked) remove(ref(db, `blocks/${currentUser.uid}/${targetUid}`));
+      else set(ref(db, `blocks/${currentUser.uid}/${targetUid}`), true);
+      renderProfile(targetUid);
+    };
+
+    // Punishment & Shield Logging
     window.openAdminPunishModal = (targetUid, type) => {
       document.getElementById('modal-content').innerHTML = `
         <h3>إجراء إداري (${type})</h3>
@@ -439,24 +648,41 @@
       if (timeStr.endsWith('t')) durationMs = parseInt(timeStr) * 60 * 1000;
       else if (timeStr.endsWith('d')) durationMs = parseInt(timeStr) * 24 * 60 * 60 * 1000;
 
-      if (type === 'mute') {
-        update(ref(db, 'users/' + targetUid), { isMuted: true, muteUntil: Date.now() + durationMs });
-      } else if (type === 'ban') {
-        update(ref(db, 'users/' + targetUid), { isBanned: true });
-      } else if (type === 'delete') {
-        remove(ref(db, 'users/' + targetUid));
-      }
+      if (type === 'mute') update(ref(db, 'users/' + targetUid), { isMuted: true, muteUntil: Date.now() + durationMs });
+      else if (type === 'ban') update(ref(db, 'users/' + targetUid), { isBanned: true });
+      else if (type === 'delete') remove(ref(db, 'users/' + targetUid));
 
-      push(ref(db, 'admin_logs'), {
-        admin: currentUser.uid, target: targetUid, type, reason, proof: proofBase64, timestamp: Date.now()
+      // Send to Shield Chat
+      const tSnap = await get(ref(db, 'users/' + targetUid));
+      const tName = tSnap.exists() ? tSnap.val().name : targetUid;
+
+      push(ref(db, 'messages/shield'), {
+        senderUid: currentUser.uid,
+        senderName: '🔒 السجل الإداري',
+        photo: 'https://via.placeholder.com/24',
+        text: `⚖️ إجراء [${type}] على المستخدم (${tName})\nالمدة: ${timeStr || 'دائم'}\nالسبب: ${reason || 'غير محدد'}`,
+        image: proofBase64,
+        timestamp: Date.now()
       });
 
-      alert('تم تطبيق الإجراء بنجاح');
+      alert('تم تطبيق الإجراء وتوثيقه في شات الدرع');
       closeModal();
-      switchTab('public');
+      renderProfile(targetUid);
     };
 
-    // Notifications
+    window.unmuteUser = (targetUid) => {
+      update(ref(db, 'users/' + targetUid), { isMuted: false, muteUntil: 0 });
+      alert('تم إلغاء الكتم');
+      renderProfile(targetUid);
+    };
+
+    window.unbanUser = (targetUid) => {
+      update(ref(db, 'users/' + targetUid), { isBanned: false });
+      alert('تم إلغاء الحظر');
+      renderProfile(targetUid);
+    };
+
+    // Notifications System
     function listenNotifications() {
       onValue(ref(db, `notifications/${currentUser.uid}`), snapshot => {
         const badge = document.getElementById('notif-badge');
@@ -470,17 +696,104 @@
     }
 
     window.openNotifications = () => {
-      remove(ref(db, `notifications/${currentUser.uid}`));
-      document.getElementById('notif-badge').style.display = 'none';
+      get(ref(db, `notifications/${currentUser.uid}`)).then(snapshot => {
+        let listHtml = '';
+        if (snapshot.exists()) {
+          snapshot.forEach(c => {
+            const n = c.val();
+            listHtml += `<div class="user-item"><span>${n.fromName} ${n.type === 'follow' ? 'قام بمتابعتك 👤' : 'أرسل لك رسالة 💬'}</span></div>`;
+          });
+        } else {
+          listHtml = '<p>لا توجد إشعارات جديدة</p>';
+        }
 
-      document.getElementById('modal-content').innerHTML = `
-        <h3>الإشعارات 🔔</h3>
-        <p>تم تمحيص وقراءة جميع الإشعارات!</p>
-        <button class="btn-full" onclick="closeModal()">إغلاق</button>
-      `;
-      document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modal-content').innerHTML = `
+          <h3>الإشعارات 🔔</h3>
+          <div style="max-height:200px;overflow-y:auto;margin:10px 0;">${listHtml}</div>
+          <button class="btn-full" onclick="clearNotifs()">تم القراءة والمسح</button>
+        `;
+        document.getElementById('modal').style.display = 'flex';
+      });
     };
 
+    window.clearNotifs = () => {
+      remove(ref(db, `notifications/${currentUser.uid}`));
+      closeModal();
+    };
+
+    // Technical Support (🛠️)
+    window.openSupportSystem = () => {
+      if (userData.role === 'founder' || userData.role === 'helper') {
+        // Admin View
+        onValue(ref(db, 'tickets'), snapshot => {
+          let tHtml = '';
+          if (snapshot.exists()) {
+            snapshot.forEach(c => {
+              const t = c.val();
+              tHtml += `
+                <div class="user-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+                  <b>تكت من: ${t.senderName} (@${t.senderUsername})</b>
+                  <small>ضد: @${t.targetUsername}</small>
+                  <p>السبب: ${t.reason}</p>
+                  ${t.proof ? `<img src="${t.proof}" style="width:100%;max-height:100px;object-fit:cover;" onclick="openLightbox('${t.proof}')">` : ''}
+                  <button class="btn-full" style="background:red;color:#fff;" onclick="deleteTicket('${c.key}')">حذف التكت</button>
+                </div>
+              `;
+            });
+          } else tHtml = '<p>لا توجد تكتات دعم حالياً</p>';
+
+          document.getElementById('modal-content').innerHTML = `
+            <h3>الدعم الفني (لوحة الأدمن) 🛠️</h3>
+            <div style="max-height:250px;overflow-y:auto;margin:10px 0;">${tHtml}</div>
+            <button class="btn-full" onclick="closeModal()">إغلاق</button>
+          `;
+          document.getElementById('modal').style.display = 'flex';
+        });
+      } else {
+        // User View
+        document.getElementById('modal-content').innerHTML = `
+          <h3>رفع تكت دعم فني 🛠️</h3>
+          <input type="text" class="form-input" value="@${userData.username}" readonly>
+          <input type="text" id="ticket-target" class="form-input" placeholder="يوزر الشخص المشكو ضد">
+          <input type="text" id="ticket-reason" class="form-input" placeholder="السبب">
+          <input type="file" id="ticket-proof" class="form-input" accept="image/*">
+          <button class="btn-full" style="background:#4caf50;color:#fff;" onclick="submitTicket()">رفع تكت</button>
+          <button class="btn-full" onclick="closeModal()">إلغاء</button>
+        `;
+        document.getElementById('modal').style.display = 'flex';
+      }
+    };
+
+    window.submitTicket = async () => {
+      const targetUsername = document.getElementById('ticket-target').value.trim();
+      const reason = document.getElementById('ticket-reason').value.trim();
+      const file = document.getElementById('ticket-proof').files[0];
+
+      if(!targetUsername || !reason) { alert('يرجى كتابة كافة البيانات'); return; }
+
+      let proof = '';
+      if(file) proof = await fileToBase64(file);
+
+      push(ref(db, 'tickets'), {
+        senderUid: currentUser.uid,
+        senderName: userData.name,
+        senderUsername: userData.username,
+        targetUsername,
+        reason,
+        proof,
+        timestamp: Date.now()
+      });
+
+      alert('تم رفع التكت بنجاح وسيتم مراجعته من الإدارة');
+      closeModal();
+    };
+
+    window.deleteTicket = (id) => {
+      remove(ref(db, 'tickets/' + id));
+      openSupportSystem();
+    };
+
+    // UI Utilities & Modals
     window.openCreateGroupModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>إنشاء كروب جديد</h3>
@@ -507,9 +820,9 @@
     window.openEditModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>تعديل الملف الشخصي</h3>
-        <input type="text" id="edit-name" class="form-input" value="${userData.name}" placeholder="الاسم">
-        <input type="text" id="edit-username" class="form-input" value="${userData.username}" placeholder="اسم المستخدم (ثنائي أو أكثر)">
-        <textarea id="edit-bio" class="form-input" placeholder="الوصف">${userData.bio || ''}</textarea>
+        <input type="text" id="edit-name" class="form-input" value="${userData.name}">
+        <input type="text" id="edit-username" class="form-input" value="${userData.username}">
+        <textarea id="edit-bio" class="form-input">${userData.bio || ''}</textarea>
         <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="saveProfileChanges()">حفظ</button>
         <button class="btn-full" onclick="closeModal()">إلغاء</button>
       `;
@@ -521,10 +834,7 @@
       let newUsername = document.getElementById('edit-username').value.trim().replace('@', '');
       const newBio = document.getElementById('edit-bio').value.trim();
 
-      if (newUsername.length < 2) {
-        alert('يجب أن يكون اسم المستخدم متكون من حرفين أو أكثر!');
-        return;
-      }
+      if (newUsername.length < 2) { alert('اليوزر يجب أن يكون أطول من حرفين!'); return; }
 
       update(ref(db, 'users/' + currentUser.uid), {
         name: newName, username: newUsername, bio: newBio
@@ -551,7 +861,7 @@
             res.innerHTML += `
               <div class="user-item">
                 <div><b>${u.name}</b> <small>@${u.username}</small></div>
-                <button class="btn-send" onclick="renderProfile('${child.key}')">عرض</button>
+                <button class="btn-send" onclick="switchTab('profile', '${child.key}')">عرض</button>
               </div>
             `;
           }
@@ -565,8 +875,8 @@
     };
     window.closeLightbox = () => document.getElementById('lightbox').style.display = 'none';
 
-    window.toggleVerify = (uid, status) => { update(ref(db, 'users/' + uid), { verified: status }); renderProfile(uid); };
-    window.setRole = (uid, role) => { update(ref(db, 'users/' + uid), { role: role }); renderProfile(uid); };
+    window.toggleVerify = (uid, status) => { update(ref(db, 'users/' + uid), { verified: status }); };
+    window.setRole = (uid, role) => { update(ref(db, 'users/' + uid), { role }); };
     window.closeModal = () => document.getElementById('modal').style.display = 'none';
   </script>
 </head>
@@ -580,17 +890,25 @@
   <div id="app-screen" class="app-container" style="display:none;">
     <div class="header">
       <div class="header-tools">
-        <button class="tool-icon-btn" onclick="openNotifications()">
-          🔔 <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
-        </button>
-        <button class="tool-icon-btn" onclick="switchTab('announcements')">📢</button>
-        <button id="btn-shield" class="tool-icon-btn" style="display:none;" onclick="switchTab('shield')">🛡️</button>
+        <button class="tool-btn" onclick="openNotifications()">🔔 <span id="notif-badge" class="notif-badge" style="display:none;">0</span></button>
+        <button class="tool-btn" onclick="switchTab('announcements')">📢</button>
+        <button id="btn-shield" class="tool-btn" style="display:none;" onclick="switchTab('shield')">🛡️</button>
+        <button id="btn-support" class="tool-btn" style="display:none;" onclick="openSupportSystem()">🛠️</button>
       </div>
       <span id="user-header-info" style="font-size:12px;font-weight:bold;">...</span>
       <button onclick="logout()" style="background:#d32f2f;color:#fff;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:11px;">خروج</button>
     </div>
 
-    <div class="nav-tabs">
+    <div id="group-header" class="group-header">
+      <button class="tool-btn" onclick="switchTab('inbox')">✖️</button>
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openGroupSettings()">
+        <img id="group-avatar" src="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        <span id="group-title" style="font-weight:bold;font-size:14px;">الكروب</span>
+      </div>
+      <div></div>
+    </div>
+
+    <div id="main-nav" class="nav-tabs">
       <button id="tab-public" class="tab-btn active" onclick="switchTab('public')">العام</button>
       <button id="tab-inbox" class="tab-btn" onclick="switchTab('inbox')">الرسائل 💬</button>
       <button id="tab-search" class="tab-btn" onclick="switchTab('search')">بحث 🔍</button>
@@ -604,6 +922,7 @@
     <div id="input-area" class="input-area">
       <button class="icon-btn" onclick="document.getElementById('img-file').click()">📷</button>
       <input type="file" id="img-file" accept="image/*" style="display:none" onchange="uploadImage(event)">
+      <button id="btn-voice" class="icon-btn" onclick="toggleVoiceRecord()">🎙️</button>
       <input type="text" id="msg-input" placeholder="اكتب رسالة...">
       <button class="btn-send" onclick="sendMessage()">إرسال</button>
     </div>

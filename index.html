@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatity Super App</title>
+  <style>
+    :root { --primary: #075e54; --secondary: #128c7e; --bg: #efeae2; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: #f4f5f7; height: 100vh; display: flex; justify-content: center; overflow: hidden; }
+    .app-container { width: 100%; max-width: 480px; background: #fff; height: 100%; display: flex; flex-direction: column; }
+    
+    .header { background: var(--primary); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .header-tools { display: flex; gap: 8px; }
+    .tool-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+
+    .nav-tabs { display: flex; background: var(--secondary); }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #fff; font-weight: bold; cursor: pointer; font-size: 12px; }
+    .tab-btn.active { border-bottom: 3px solid #fff; }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+    
+    .msg { max-width: 80%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .msg.me { margin-right: auto; background: #dcf8c6; }
+    
+    .input-area { padding: 10px; background: #fff; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ddd; }
+    .input-area input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+    .btn-send { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 20px; }
+
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+    .modal-body { background: #fff; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; }
+    .form-input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+<div id="app-screen" class="app-container">
+  <div class="header">
+    <div class="header-tools">
+      <button class="tool-btn" onclick="openTicketSystem()">❗</button>
+      <button class="tool-btn" onclick="alert('الإشعارات')">🔔</button>
+      <button class="tool-btn" onclick="alert('الأدوات')">🛠️</button>
+    </div>
+    <span id="user-header">مرحباً</span>
+  </div>
+
+  <div class="nav-tabs">
+    <button id="tab-public" class="tab-btn active" onclick="switchTab('public')">العام</button>
+    <button id="tab-inbox" class="tab-btn" onclick="switchTab('inbox')">الرسائل</button>
+  </div>
+
+  <div id="content-box" class="content-area"></div>
+
+  <div id="input-area" class="input-area">
+    <input type="text" id="msg-input" placeholder="اكتب رسالة...">
+    <button class="btn-send" onclick="sendMessage()">إرسال</button>
+  </div>
+</div>
+
+<!-- المودال (النافذة المنبثقة) -->
+<div id="modal" class="modal">
+  <div id="modal-content" class="modal-body"></div>
+</div>
+
+<script type="module">
+  // إعدادات Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  
+  // (ضع الإعدادات الخاصة بك هنا)
+  const firebaseConfig = { /* ... */ }; 
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let currentUid = "user_" + Math.floor(Math.random()*1000); // تجريبي
+  let currentTab = "public";
+
+  window.switchTab = (tab) => {
+    currentTab = tab;
+    document.getElementById('input-area').style.display = 'flex'; // إجبار ظهور الشات
+    document.getElementById('content-box').innerHTML = "تحميل...";
+    
+    // تحميل الرسائل حسب التاب
+    onValue(ref(db, 'messages/' + tab), (snap) => {
+      const box = document.getElementById('content-box');
+      box.innerHTML = '';
+      snap.forEach(c => {
+        const m = c.val();
+        box.innerHTML += `<div class="msg ${m.uid === currentUid ? 'me' : ''}">${m.text}</div>`;
+      });
+    });
+  };
+
+  window.sendMessage = () => {
+    const input = document.getElementById('msg-input');
+    if(!input.value) return;
+    push(ref(db, 'messages/' + currentTab), {
+      text: input.value,
+      uid: currentUid,
+      timestamp: Date.now()
+    });
+    input.value = '';
+  };
+
+  window.openTicketSystem = () => {
+    const isAdmin = false; // حدد منطق الأدمن هنا
+    const modal = document.getElementById('modal');
+    const content = document.getElementById('modal-content');
+    
+    if(!isAdmin) {
+      content.innerHTML = `
+        <h3>رفع تكت دعم فني ❗</h3>
+        <input type="text" id="t-user" class="form-input" placeholder="يوزر الشخص المشكو ضده">
+        <input type="text" id="t-reason" class="form-input" placeholder="السبب">
+        <button onclick="submitTicket()" style="background:green;color:white;padding:10px;width:100%;">إرسال التكت</button>
+        <button onclick="document.getElementById('modal').style.display='none'" style="width:100%;margin-top:10px;">إغلاق</button>
+      `;
+    } else {
+      content.innerHTML = `<h3>لوحة التكتات الإدارية</h3><p>لا توجد تكتات حالياً</p><button onclick="document.getElementById('modal').style.display='none'">إغلاق</button>`;
+    }
+    modal.style.display = 'flex';
+  };
+
+  window.submitTicket = () => {
+    alert('تم إرسال التكت بنجاح!');
+    document.getElementById('modal').style.display = 'none';
+  };
+
+  // بداية التطبيق
+  switchTab('public');
+</script>
+
+</body>
+</html>

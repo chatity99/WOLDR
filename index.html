@@ -17,7 +17,6 @@
 
     .content-area { flex: 1; overflow-y: auto; padding: 10px; background: #efeae2; display: flex; flex-direction: column; gap: 8px; }
     
-    /* الرسائل */
     .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; }
     .msg.me { margin-right: auto; background: #dcf8c6; }
     .msg.system-blue { background: var(--blue-msg) !important; color: #fff !important; width: 90% !important; margin: 5px auto !important; border-radius: 8px; text-align: center; font-weight: bold; }
@@ -27,19 +26,15 @@
     .verified-badge { background: #1da1f2; color: #fff; border-radius: 50%; padding: 1px 4px; font-size: 9px; cursor: pointer; display: inline-flex; align-items: center; }
     .msg img, .msg audio { max-width: 100%; border-radius: 8px; margin-top: 5px; }
 
-    /* التحكم والإدخال */
     .input-area { padding: 8px; background: #f0f0f0; display: flex; gap: 6px; align-items: center; }
     .input-area input[type="text"] { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
     .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; }
     .btn-send { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-    /* البطاقات والملف الشخصي */
     .card { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .profile-header { text-align: center; padding: 15px; }
     .profile-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; }
-    .stats-row { display: flex; justify-content: space-around; margin: 15px 0; font-weight: bold; }
 
-    /* Modal / النافذة المنبثقة */
     .modal { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 99; }
     .modal-body { background: #fff; padding: 20px; border-radius: 12px; width: 85%; max-width: 320px; text-align: center; }
     .btn-action { width: 100%; padding: 8px; margin-top: 6px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -51,13 +46,13 @@
     import { getDatabase, ref, push, onValue, set, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "ضع_مفتاحك_هنا",
+      apiKey: "AIzaSyCJi3vI17B3pI7KF3c8CemUL0EB8s0XCDg",
       authDomain: "chatity-2da63.firebaseapp.com",
       databaseURL: "https://chatity-2da63-default-rtdb.firebaseio.com",
       projectId: "chatity-2da63",
-      storageBucket: "chatity-2da63.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      storageBucket: "chatity-2da63.firebasestorage.app",
+      messagingSenderId: "68253755871",
+      appId: "1:68253755871:web:5da50607c18b9b0218bc6a"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -67,7 +62,6 @@
     let currentUser = null;
     let userData = {};
     let currentTab = "public";
-    let mediaRecorder, audioChunks = [];
 
     window.loginWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
     window.logout = () => signOut(auth);
@@ -94,7 +88,6 @@
       }
     });
 
-    // التنقل بين التبويبات
     window.switchTab = (tab) => {
       currentTab = tab;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -108,7 +101,6 @@
       else loadMessages(tab);
     };
 
-    // إرسال الرسائل
     window.sendMessage = () => {
       const input = document.getElementById('msg-input');
       if (!input.value.trim()) return;
@@ -128,7 +120,6 @@
       input.value = '';
     };
 
-    // تحميل الرسائل وقدرات الأدمين
     function loadMessages(tab) {
       onValue(ref(db, `messages/${tab}`), (snapshot) => {
         const box = document.getElementById('content-box');
@@ -145,7 +136,6 @@
             div.className = `msg ${m.senderUid === currentUser.uid ? 'me' : ''}`;
             let actions = '';
             
-            // قدرات الإدارة الحصرية للحذف
             if (userData.role === 'founder' || (userData.role === 'helper' && m.role === 'user')) {
               actions = `<span onclick="deleteMsg('${tab}','${key}')" style="color:red;cursor:pointer;margin-right:8px;">🗑️</span>`;
             }
@@ -159,7 +149,6 @@
               </div>
               ${m.text ? `<div>${m.text}</div>` : ''}
               ${m.image ? `<img src="${m.image}">` : ''}
-              ${m.audio ? `<audio controls src="${m.audio}"></audio>` : ''}
             `;
           }
           box.appendChild(div);
@@ -170,7 +159,6 @@
 
     window.deleteMsg = (tab, key) => remove(ref(db, `messages/${tab}/${key}`));
 
-    // إرسال الوسائط
     window.uploadImage = (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -184,7 +172,6 @@
       reader.readAsDataURL(file);
     };
 
-    // عرض وتعديل الملف الشخصي
     function renderProfile() {
       const box = document.getElementById('content-box');
       box.innerHTML = `
@@ -206,7 +193,6 @@
       }).then(() => alert('تم حفظ الملف الشخصي!'));
     };
 
-    // البحث عن مستخدمين
     function renderSearch() {
       const box = document.getElementById('content-box');
       box.innerHTML = `
@@ -240,7 +226,6 @@
       }, { onlyOnce: true });
     };
 
-    // فتح ملف شخصي لأي مستخدم مع صلاحيات الأدمن
     window.openUserProfile = (uid) => {
       onValue(ref(db, 'users/' + uid), (snapshot) => {
         const u = snapshot.val();
@@ -274,7 +259,6 @@
     window.setRole = (uid, role) => { update(ref(db, 'users/' + uid), { role: role }); closeModal(); };
     window.closeModal = () => document.getElementById('modal').style.display = 'none';
 
-    // نظام البلاغات
     window.openReportModal = (targetUid) => {
       document.getElementById('modal-content').innerHTML = `
         <h3>إرسال بلاغ</h3>
@@ -322,7 +306,6 @@
       
       <input type="text" id="msg-input" placeholder="اكتب رسالة...">
       
-      <!-- إختيار إرسال رسالة الإعلان الزرقاء (لـ Founder فقط) -->
       <label id="blue-option" style="font-size:10px;display:flex;align-items:center;gap:2px;">
         <input type="checkbox" id="blue-msg-check"> أزرق
       </label>
@@ -331,7 +314,6 @@
     </div>
   </div>
 
-  <!-- النافذة المنبثقة للبروفايل والإدارة -->
   <div id="modal" class="modal">
     <div id="modal-content" class="modal-body"></div>
   </div>

@@ -13,7 +13,6 @@
     .header { background: var(--primary); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
     .header-tools { display: flex; align-items: center; gap: 12px; }
     .tool-icon-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; position: relative; }
-    .notif-badge { position: absolute; top: -3px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 10px; padding: 1px 4px; font-weight: bold; display: none; }
 
     .nav-tabs { display: flex; background: var(--secondary); overflow-x: auto; }
     .tab-btn { flex: 1; min-width: 65px; padding: 12px 6px; border: none; background: transparent; color: #fff; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; white-space: nowrap; }
@@ -94,7 +93,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getDatabase, ref, push, onValue, set, update, get, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, set, update, get, remove, onDisconnect, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCJi3vI17B3pI7KF3c8CemUL0EB8s0XCDg",
@@ -144,7 +143,7 @@
 
     window.completeProfileSetup = async () => {
       const name = document.getElementById('setup-name').value.trim();
-      const username = document.getElementById('setup-username').value.trim().replace('@', '');
+      const username = document.getElementById('setup-username').value.trim().toLowerCase().replace('@', '');
 
       if (!name || username.length < 2) {
         alert('يرجى كتابة اسم واسم مستخدم صالح (حرفين أو أكثر)');
@@ -246,7 +245,7 @@
     window.uploadImage = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      if (file.size > 2 * 1024 * 1024) { alert('حجم الصورة يجب أن لا يتجاوز 2 ميجابايت'); return; }
+      if (file.size > 1.5 * 1024 * 1024) { alert('حجم الصورة يجب أن لا يتجاوز 1.5 ميجابايت لضمان السرعة'); return; }
       try {
         const base64 = await fileToBase64(file);
         postMessage({ image: base64 });
@@ -318,7 +317,7 @@
       }
 
       const msgData = {
-        senderUid: content.isFounderBlue ? 'anonymous' : currentUser.uid,
+        senderUid: currentUser.uid, // استخدام المعرف الحقيقي لتسهيل الإدارة والصلاحيات
         senderName: content.senderName || userData.name,
         photo: content.photo || userData.photo,
         isVerified: content.isFounderBlue ? false : !!userData.verified,
@@ -343,20 +342,24 @@
     }
 
     function loadMessages(tab) {
-      onValue(ref(db, `messages/${tab}`), snapshot => renderMessageList(snapshot));
+      const q = query(ref(db, `messages/${tab}`), limitToLast(50));
+      onValue(q, snapshot => renderMessageList(snapshot));
     }
 
     function loadDMMessages(targetUid) {
       const chatKey = [currentUser.uid, targetUid].sort().join('_');
-      onValue(ref(db, `direct_messages/${chatKey}`), snapshot => renderMessageList(snapshot));
+      const q = query(ref(db, `direct_messages/${chatKey}`), limitToLast(50));
+      onValue(q, snapshot => renderMessageList(snapshot));
     }
 
     function loadGroupMessages(groupId) {
-      onValue(ref(db, `group_messages/${groupId}`), snapshot => renderMessageList(snapshot));
+      const q = query(ref(db, `group_messages/${groupId}`), limitToLast(50));
+      onValue(q, snapshot => renderMessageList(snapshot));
     }
 
     function loadSupportChat(ticketId) {
-      onValue(ref(db, `tickets/${ticketId}/messages`), snapshot => renderMessageList(snapshot));
+      const q = query(ref(db, `tickets/${ticketId}/messages`), limitToLast(50));
+      onValue(q, snapshot => renderMessageList(snapshot));
     }
 
     function renderMessageList(snapshot) {
@@ -376,8 +379,8 @@
                         (userData.role === 'helper' && m.role !== 'founder' && m.role !== 'helper');
 
         let badgeHtml = '';
-        if (m.isVerified) badgeHtml += `<span class="badge-blue">✓</span>`;
-        if (m.role === 'helper') badgeHtml += `<span class="badge-black">✓</span>`;
+        if (m.isVerified && !m.isFounderBlue) badgeHtml += `<span class="badge-blue">✓</span>`;
+        if (m.role === 'helper' && !m.isFounderBlue) badgeHtml += `<span class="badge-black">✓</span>`;
 
         let replyHtml = m.replyTo ? `<div class="reply-preview" onclick="scrollToMessage('${m.replyTo.key}')"><b>${m.replyTo.name}:</b> ${m.replyTo.text}</div>` : '';
 
@@ -395,7 +398,7 @@
           ${replyHtml}
           <div class="msg-header">
             <img src="${m.photo || 'https://via.placeholder.com/24'}" class="avatar-mini">
-            <span onclick="${m.senderUid !== 'anonymous' ? `renderProfile('${m.senderUid}')` : ''}" style="cursor:pointer">${m.senderName}</span>
+            <span onclick="${!m.isFounderBlue ? `renderProfile('${m.senderUid}')` : ''}" style="cursor:pointer">${m.senderName}</span>
             ${badgeHtml}
             ${canDelete ? `<span onclick="deleteMsg('${key}')" style="color:red;cursor:pointer;margin-right:auto;">🗑️</span>` : ''}
           </div>
@@ -420,11 +423,10 @@
     function renderReelsSection() {
       const box = document.getElementById('content-box');
       box.style.padding = '0';
-      box.innerHTML = `
-        <div class="reels-container" id="reels-list"></div>
-      `;
+      box.innerHTML = `<div class="reels-container" id="reels-list"></div>`;
 
-      onValue(ref(db, 'reels'), snapshot => {
+      const reelsQuery = query(ref(db, 'reels'), limitToLast(30));
+      onValue(reelsQuery, snapshot => {
         const reelsList = document.getElementById('reels-list');
         if (!reelsList) return;
         reelsList.innerHTML = '';
@@ -542,7 +544,7 @@
       const caption = document.getElementById('reel-caption').value.trim();
 
       if (!file) { alert('يرجى اختيار ملف فيديو!'); return; }
-      if (file.size > 5 * 1024 * 1024) { alert('حجم الفيديو كبير جداً (الأقصى 5 ميجابايت عند رفع مقاطع كـ Base64)'); return; }
+      if (file.size > 3 * 1024 * 1024) { alert('حجم الفيديو كبير جداً! يرجى اختيار فيديو بحجم أقل من 3 ميجابايت لمنع التجميد'); return; }
 
       try {
         const videoBase64 = await fileToBase64(file);
@@ -841,23 +843,25 @@
       `;
     };
 
-    window.searchUserToAddGroup = (val) => {
-      if (!val.trim()) return;
-      onValue(ref(db, 'users'), snap => {
-        const box = document.getElementById('add-group-user-results');
-        box.innerHTML = '';
-        snap.forEach(c => {
-          const u = c.val();
-          if (u.username?.includes(val.toLowerCase())) {
-            box.innerHTML += `
-              <div class="user-item">
-                <span>${u.name} (@${u.username})</span>
-                <button class="btn-send" onclick="addUserToGroup('${c.key}')">إضافة</button>
-              </div>
-            `;
-          }
-        });
-      }, { onlyOnce: true });
+    window.searchUserToAddGroup = async (val) => {
+      const queryVal = val.trim().toLowerCase();
+      if (!queryVal) return;
+      const snap = await get(ref(db, 'users'));
+      const box = document.getElementById('add-group-user-results');
+      if (!box) return;
+      box.innerHTML = '';
+      
+      snap.forEach(c => {
+        const u = c.val();
+        if (u.username?.toLowerCase().includes(queryVal)) {
+          box.innerHTML += `
+            <div class="user-item">
+              <span>${u.name} (@${u.username})</span>
+              <button class="btn-send" onclick="addUserToGroup('${c.key}')">إضافة</button>
+            </div>
+          `;
+        }
+      });
     };
 
     window.addUserToGroup = (uid) => {
@@ -1083,4 +1087,259 @@
         <button class="btn-full" style="background:red;color:#fff;" onclick="applyPunishment('${targetUid}', '${type}')">تطبيق للإدارة</button>
         <button class="btn-full" onclick="closeModal()">إلغاء</button>
       `;
-      document.getElementById('modal').s
+      document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.applyPunishment = async (targetUid, type) => {
+      const timeStr = document.getElementById('punish-time').value.trim();
+      const reason = document.getElementById('punish-reason').value.trim();
+      const proofFile = document.getElementById('punish-proof').files[0];
+
+      let proofBase64 = '';
+      if (proofFile) proofBase64 = await fileToBase64(proofFile);
+
+      let durationMs = 0;
+      if (timeStr.endsWith('t')) durationMs = parseInt(timeStr) * 60 * 1000;
+      else if (timeStr.endsWith('d')) durationMs = parseInt(timeStr) * 24 * 60 * 60 * 1000;
+
+      if (type === 'mute') {
+        update(ref(db, 'users/' + targetUid), { isMuted: true, muteUntil: Date.now() + durationMs });
+      } else if (type === 'ban') {
+        update(ref(db, 'users/' + targetUid), { isBanned: true });
+      } else if (type === 'delete') {
+        remove(ref(db, 'users/' + targetUid));
+      }
+
+      const targetSnap = await get(ref(db, 'users/' + targetUid));
+      const targetName = targetSnap.exists() ? targetSnap.val().name : targetUid;
+
+      push(ref(db, 'messages/shield'), {
+        senderUid: currentUser.uid,
+        senderName: '🛡️ نظام الإدارة',
+        photo: 'https://via.placeholder.com/24',
+        text: `⚠️ [إجراء إداري - ${type.toUpperCase()}]\n👤 المستهدف: ${targetName}\n⏱️ المدة: ${timeStr || 'دائم'}\n📝 السبب: ${reason || 'بدون سبب'}`,
+        image: proofBase64 || null,
+        timestamp: Date.now()
+      });
+
+      alert('تم تطبيق الإجراء وتم إرسال الإشعار للدرع');
+      closeModal();
+      renderProfile(targetUid);
+    };
+
+    window.unmuteUser = (uid) => {
+      update(ref(db, 'users/' + uid), { isMuted: false, muteUntil: 0 });
+      alert('تم إلغاء الكتم');
+      renderProfile(uid);
+    };
+
+    window.unbanUser = (uid) => {
+      update(ref(db, 'users/' + uid), { isBanned: false });
+      alert('تم إلغاء الحظر الإداري');
+      renderProfile(uid);
+    };
+
+    function renderSupportSection() {
+      const box = document.getElementById('content-box');
+      box.style.padding = '12px';
+
+      if (userData.role === 'founder' || userData.role === 'helper') {
+        renderAdminSupportTickets();
+        return;
+      }
+
+      onValue(ref(db, `user_tickets/${currentUser.uid}`), async (snap) => {
+        if (snap.exists()) {
+          const ticketId = snap.val().activeTicketId;
+          if (ticketId) {
+            switchTab('support_chat', ticketId);
+            return;
+          }
+        }
+
+        box.innerHTML = `
+          <div style="background:#fff;padding:15px;border-radius:12px;text-align:center;">
+            <h3>الدعم الفني 🛠️</h3>
+            <p style="font-size:12px;color:#666;margin-bottom:12px;">إذا واجهتك مشكلة أو أردت الإبلاغ يرجى فتح تكت</p>
+            <button class="btn-full" style="background:#2196F3;color:#fff;" onclick="openCreateTicketModal()">فتح تكت دعم فني 🟢</button>
+          </div>
+        `;
+      });
+    }
+
+    window.openCreateTicketModal = () => {
+      document.getElementById('modal-content').innerHTML = `
+        <h3>فتح تكت جديد 🛠️</h3>
+        <input type="text" id="t-my-username" class="form-input" value="${userData.username}" readonly>
+        <input type="text" id="t-target-username" class="form-input" placeholder="يوزر الشخص المشكو ضد (إن وجد)">
+        <textarea id="t-reason" class="form-input" placeholder="السبب ووصف المشكلة"></textarea>
+        <input type="file" id="t-proof" accept="image/*" class="form-input">
+        <button class="btn-full" style="background:#4CAF50;color:#fff;" onclick="submitTicket()">رفع تكت 🟢</button>
+        <button class="btn-full" onclick="closeModal()">إلغاء</button>
+      `;
+      document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.submitTicket = async () => {
+      const targetUser = document.getElementById('t-target-username').value.trim();
+      const reason = document.getElementById('t-reason').value.trim();
+      const proofFile = document.getElementById('t-proof').files[0];
+
+      if (!reason) { alert('يرجى كتابة السبب'); return; }
+
+      let proofBase64 = '';
+      if (proofFile) proofBase64 = await fileToBase64(proofFile);
+
+      const ticketRef = push(ref(db, 'tickets'));
+      const ticketId = ticketRef.key;
+
+      await set(ticketRef, {
+        creatorUid: currentUser.uid,
+        creatorName: userData.name,
+        targetUser,
+        reason,
+        proof: proofBase64,
+        status: 'open',
+        timestamp: Date.now()
+      });
+
+      await set(ref(db, `user_tickets/${currentUser.uid}`), { activeTicketId: ticketId });
+
+      closeModal();
+      switchTab('support_chat', ticketId);
+    };
+
+    function renderAdminSupportTickets() {
+      const box = document.getElementById('content-box');
+      box.style.padding = '12px';
+      box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
+      onValue(ref(db, 'tickets'), snap => {
+        box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
+        if (!snap.exists()) {
+          box.innerHTML += '<p style="font-size:12px;color:#777;margin-top:10px;">لا توجد تذاكر حالياً</p>';
+          return;
+        }
+        snap.forEach(c => {
+          const t = c.val();
+          box.innerHTML += `
+            <div class="user-item">
+              <div>
+                <b>📄 ${t.creatorName}</b>: ${t.reason}<br>
+                <small style="color:#777;">المشكو ضد: ${t.targetUser || 'بلا'}</small>
+              </div>
+              <div style="display:flex;gap:4px;">
+                <button class="btn-send" onclick="switchTab('support_chat', '${c.key}')">محادثة</button>
+                <button style="background:red;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" onclick="deleteTicket('${c.key}')">حذف</button>
+              </div>
+            </div>
+          `;
+        });
+      });
+    }
+
+    window.deleteTicket = async (ticketId) => {
+      if (!confirm('هل تريد إغلاق وحذف التكت؟')) return;
+      const tSnap = await get(ref(db, `tickets/${ticketId}`));
+      if (tSnap.exists()) {
+        const creatorUid = tSnap.val().creatorUid;
+        remove(ref(db, `user_tickets/${creatorUid}`));
+      }
+      remove(ref(db, `tickets/${ticketId}`));
+      renderAdminSupportTickets();
+    };
+
+    window.openLightbox = (src) => {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox').style.display = 'flex';
+    };
+
+    window.closeLightbox = () => {
+      document.getElementById('lightbox').style.display = 'none';
+    };
+
+    window.closeModal = () => {
+      document.getElementById('modal').style.display = 'none';
+    };
+  </script>
+</head>
+<body>
+
+  <!-- شاشة التسجيل -->
+  <div id="login-screen" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;width:100%;background:#fff;padding:20px;">
+    <h2 style="color:var(--primary);margin-bottom:10px;">ItChat Super App</h2>
+    <p style="color:#666;margin-bottom:20px;">قم بالتسجيل للدخول إلى المنصة</p>
+    <button onclick="loginWithGoogle()" style="background:var(--primary);color:#fff;border:none;padding:12px 24px;border-radius:25px;font-size:16px;cursor:pointer;font-weight:bold;">تسجيل الدخول عبر Google 🚀</button>
+  </div>
+
+  <!-- شاشة ضبط الحساب أول مرة -->
+  <div id="setup-profile-screen" style="display:none;flex-direction:column;justify-content:center;align-items:center;height:100vh;width:100%;background:#fff;padding:20px;">
+    <h3>إعداد حسابك لأول مرة 👤</h3>
+    <input type="text" id="setup-name" class="form-input" placeholder="الاسم الظاهر">
+    <input type="text" id="setup-username" class="form-input" placeholder="اسم المستخدم (Username)">
+    <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="completeProfileSetup()">دخول التطبيق</button>
+  </div>
+
+  <!-- الشاشة الرئيسية للتطبيق -->
+  <div id="app-screen" class="app-container" style="display:none;">
+    
+    <!-- الهيدر العلوي -->
+    <div class="header">
+      <span id="user-header-info" style="font-weight:bold;font-size:14px;">ItChat</span>
+      <div class="header-tools">
+        <button class="tool-icon-btn" id="btn-shield" style="display:none;" onclick="switchTab('shield')" title="الدرع الإداري">🛡️</button>
+        <button class="tool-icon-btn" onclick="switchTab('support')" title="الدعم الفني">🛠️</button>
+        <button class="tool-icon-btn" onclick="logout()" title="خروج">🚪</button>
+      </div>
+    </div>
+
+    <!-- شريط تنقل الكروب -->
+    <div class="group-header" id="group-header">
+      <div class="group-info-btn" onclick="openGroupSettings()">
+        <img id="group-header-img" src="https://via.placeholder.com/36" class="group-avatar">
+        <b id="group-title-name">الكروب</b>
+      </div>
+      <button onclick="switchTab('inbox')" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">خروج 🏃</button>
+    </div>
+
+    <!-- تبويبات Nav Bar -->
+    <div class="nav-tabs" id="nav-tabs">
+      <button class="tab-btn" id="tab-public" onclick="switchTab('public')">العام</button>
+      <button class="tab-btn" id="tab-inbox" onclick="switchTab('inbox')">المحادثات</button>
+      <button class="tab-btn" id="tab-announcements" onclick="switchTab('announcements')">الإعلانات</button>
+      <button class="tab-btn" id="tab-reels" onclick="switchTab('reels')">ريلز ItChat</button>
+      <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')">حسابي</button>
+    </div>
+
+    <!-- منطقة المحتوى الرئيسية -->
+    <div class="content-area" id="content-box"></div>
+
+    <!-- صندوق معاينة الرد -->
+    <div id="reply-preview-box" style="display:none;background:#e1f5fe;padding:6px 12px;font-size:12px;border-top:1px solid #b3e5fc;color:#0277bd;"></div>
+
+    <!-- منطقة أدوات الإدخال والدردشة -->
+    <div class="input-area" id="input-area">
+      <label class="icon-btn" style="cursor:pointer;">
+        📷
+        <input type="file" accept="image/*" style="display:none;" onchange="uploadImage(event)">
+      </label>
+      <button class="icon-btn" id="btn-voice" onclick="toggleVoiceRecording()">🎤</button>
+      <input type="text" id="msg-input" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter') sendMessage()">
+      
+      <button class="btn-send" id="btn-founder-blue" style="display:none;background:#007bff;margin-left:4px;" onclick="sendFounderMessage()" title="إرسال مجهول زرقاء">🔵</button>
+      <button class="btn-send" onclick="sendMessage()">إرسال</button>
+    </div>
+
+  </div>
+
+  <!-- النافذة المنبثقة Modal -->
+  <div class="modal" id="modal">
+    <div class="modal-body" id="modal-content"></div>
+  </div>
+
+  <!-- عرض الصور Lightbox -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="">
+  </div>
+
+</body>
+</html>

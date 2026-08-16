@@ -64,13 +64,21 @@
     .stat-box { text-align: center; }
     .stat-number { font-weight: bold; color: #000; display: block; }
 
-    .reels-container { display: flex; flex-direction: column; gap: 20px; snap-type: y mandatory; overflow-y: scroll; height: 100%; padding-bottom: 20px; }
-    .reel-card { snap-align: start; min-height: 80vh; background: #000; border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+    .reels-container { display: flex; flex-direction: column; gap: 10px; snap-type: y mandatory; overflow-y: scroll; height: 100%; padding-bottom: 20px; }
+    .reel-card { snap-align: start; min-height: 85vh; background: #000; border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
     .reel-card video { width: 100%; height: 100%; object-fit: cover; }
-    .reel-overlay { position: absolute; bottom: 15px; left: 15px; right: 15px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; justify-content: space-between; align-items: flex-end; }
-    .reel-info { flex: 1; }
+    .reel-top-info { position: absolute; top: 15px; right: 15px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; z-index: 5; }
+    .reel-overlay { position: absolute; bottom: 15px; left: 15px; right: 15px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; justify-content: space-between; align-items: flex-end; z-index: 5; }
+    .reel-info { flex: 1; padding-left: 10px; }
     .reel-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-    .action-btn { background: rgba(0,0,0,0.4); border: none; color: #fff; width: 42px; height: 42px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; }
+    .action-btn { background: rgba(0,0,0,0.5); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; }
+    
+    .profile-tabs { display: flex; justify-content: space-around; width: 100%; margin-top: 10px; border-bottom: 1px solid #ddd; }
+    .profile-tab-btn { background: none; border: none; padding: 8px; font-weight: bold; cursor: pointer; color: #666; font-size: 12px; }
+    .profile-tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+    .videos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; margin-top: 8px; }
+    .video-grid-item { position: relative; width: 100%; height: 110px; background: #000; border-radius: 6px; overflow: hidden; }
+    .video-grid-item video { width: 100%; height: 100%; object-fit: cover; }
   </style>
 
   <script type="module">
@@ -163,6 +171,7 @@
         }
 
         document.getElementById('user-header-info').innerText = `${userData.name} [${userData.role || 'مستخدم'}]`;
+        document.getElementById('btn-admin-header').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
         document.getElementById('btn-shield').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
         document.getElementById('btn-support-admin').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
       });
@@ -387,7 +396,7 @@
       const box = document.getElementById('content-box');
       box.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h3>🎬 الريلز والفيديوهات</h3>
+          <h3>🎬 الريلز والفيديوهات (TikTok)</h3>
           <button class="btn-send" onclick="openUploadReelModal()">+ نشر فيديو</button>
         </div>
         <div class="reels-container" id="reels-list"></div>
@@ -403,28 +412,56 @@
           return;
         }
 
+        let reelsArray = [];
         snapshot.forEach(child => {
-          const reel = child.val();
-          const key = child.key;
+          const r = child.val();
+          r.key = child.key;
+          const likesCount = r.likes ? Object.keys(r.likes).length : 0;
+          const repostsCount = r.reposts ? Object.keys(r.reposts).length : 0;
+          r.popularity = (likesCount * 2) + (repostsCount * 3) + (r.views || 0);
+          reelsArray.push(r);
+        });
+
+        // خوارزمية الترتيب حسب زيادة نسبة الشهرة والتفاعل
+        reelsArray.sort((a, b) => b.popularity - a.popularity);
+
+        reelsArray.forEach(reel => {
           const likesCount = reel.likes ? Object.keys(reel.likes).length : 0;
           const isLiked = reel.likes && reel.likes[currentUser.uid];
+          const isReposted = reel.reposts && reel.reposts[currentUser.uid];
+
+          let badge = '';
+          if (reel.isVerified) badge += `<span class="badge-blue">✓</span>`;
+          if (reel.role === 'helper') badge += `<span class="badge-black">✓</span>`;
 
           const card = document.createElement('div');
           card.className = 'reel-card';
           card.innerHTML = `
-            <video src="${reel.videoUrl}" controls playsinline loop></video>
+            <video src="${reel.videoUrl}" controls playsinline loop onclick="incrementReelView('${reel.key}')"></video>
+            
+            <div class="reel-top-info" onclick="renderProfile('${reel.senderUid}')" style="cursor:pointer;">
+              <img src="${reel.senderPhoto || 'https://via.placeholder.com/28'}" class="avatar-mini">
+              <span>${reel.senderName}</span>
+              ${badge}
+            </div>
+
             <div class="reel-overlay">
               <div class="reel-info">
-                <b>@${reel.senderName}</b>
-                <p style="font-size:12px;">${reel.caption || ''}</p>
+                <p style="font-size:13px;font-weight:bold;">${reel.caption || ''}</p>
               </div>
               <div class="reel-actions">
-                <button class="action-btn" onclick="toggleLikeReel('${key}')">
+                <button class="action-btn" onclick="toggleLikeReel('${reel.key}')">
                   ${isLiked ? '❤️' : '🤍'}
                   <span style="font-size:10px;">${likesCount}</span>
                 </button>
+
+                <button class="action-btn" onclick="toggleRepostReel('${reel.key}')">
+                  🔄
+                  <span style="font-size:10px;color:${isReposted ? '#4CAF50' : '#fff'};">${reel.reposts ? Object.keys(reel.reposts).length : 0}</span>
+                </button>
+
                 ${(reel.senderUid === currentUser.uid || userData.role === 'founder') ? `
-                  <button class="action-btn" style="background:rgba(255,0,0,0.6);" onclick="deleteReel('${key}')">🗑️</button>
+                  <button class="action-btn" style="background:rgba(255,0,0,0.6);" onclick="deleteReel('${reel.key}')">🗑️</button>
                 ` : ''}
               </div>
             </div>
@@ -434,11 +471,18 @@
       });
     }
 
+    window.incrementReelView = (reelKey) => {
+      get(ref(db, `reels/${reelKey}/views`)).then(snap => {
+        const cur = snap.val() || 0;
+        set(ref(db, `reels/${reelKey}/views`), cur + 1);
+      });
+    };
+
     window.openUploadReelModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>نشر فيديو ريلز جديد 🎬</h3>
         <input type="file" id="reel-file" accept="video/*" class="form-input">
-        <input type="text" id="reel-caption" class="form-input" placeholder="الوصف أو التعليق...">
+        <input type="text" id="reel-caption" class="form-input" placeholder="الوصف والهاشتاغ #...">
         <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="uploadReel()">نشر الآن 🚀</button>
         <button class="btn-full" onclick="closeModal()">إلغاء</button>
       `;
@@ -457,8 +501,12 @@
         push(ref(db, 'reels'), {
           senderUid: currentUser.uid,
           senderName: userData.name,
+          senderPhoto: userData.photo || '',
+          isVerified: !!userData.verified,
+          role: userData.role || 'user',
           videoUrl: videoBase64,
           caption: caption,
+          views: 0,
           timestamp: Date.now()
         });
         closeModal();
@@ -472,6 +520,18 @@
           remove(ref(db, `reels/${reelKey}/likes/${currentUser.uid}`));
         } else {
           set(ref(db, `reels/${reelKey}/likes/${currentUser.uid}`), true);
+        }
+      });
+    };
+
+    window.toggleRepostReel = (reelKey) => {
+      get(ref(db, `reels/${reelKey}/reposts/${currentUser.uid}`)).then(snap => {
+        if (snap.exists()) {
+          remove(ref(db, `reels/${reelKey}/reposts/${currentUser.uid}`));
+          alert('تم إلغاء إعادة النشر');
+        } else {
+          set(ref(db, `reels/${reelKey}/reposts/${currentUser.uid}`), true);
+          alert('تمت إعادة نشر الفيديو بنجاح على حسابك!');
         }
       });
     };
@@ -621,11 +681,11 @@
 
       document.getElementById('modal-content').innerHTML = `
         <h3>إعدادات الكروب ⚙️</h3>
-        <img src="${g.photo || 'https://via.placeholder.com/80'}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:8px 0;">
+        <img id="group-settings-img" src="${g.photo || 'https://via.placeholder.com/80'}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:8px 0;">
         
         ${isGroupAdmin ? `
           <input type="text" id="edit-group-name" class="form-input" value="${g.name}">
-          <input type="file" id="edit-group-photo" accept="image/*" class="form-input">
+          <input type="file" id="edit-group-photo" accept="image/*" class="form-input" onchange="previewGroupImage(this)">
           <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="updateGroupSettings()">حفظ التغيرات</button>
         ` : `<h4>${g.name}</h4>`}
 
@@ -640,6 +700,13 @@
         <button class="btn-full" onclick="closeModal()">إغلاق</button>
       `;
       document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.previewGroupImage = async (input) => {
+      if (input.files && input.files[0]) {
+        const base64 = await fileToBase64(input.files[0]);
+        document.getElementById('group-settings-img').src = base64;
+      }
     };
 
     window.updateGroupSettings = async () => {
@@ -739,7 +806,10 @@
             <p style="font-size:13px;color:#444;margin:8px 0;">${u.bio || 'لا يوجد وصف'}</p>
 
             ${isSelf ? `
-              <button class="btn-full" style="background:#eee;" onclick="openEditModal()">تعديل الملف الشخصي</button>
+              <div style="display:flex;gap:6px;width:100%;margin-top:4px;">
+                <button class="btn-full" style="background:#eee;" onclick="openEditModal()">تعديل الملف الشخصي</button>
+                <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="openUploadReelModal()">+ نشر ريلز 🎬</button>
+              </div>
             ` : `
               <div style="display:flex;gap:6px;width:100%;margin-top:8px;">
                 <button class="btn-full" style="background:var(--accent);color:#fff;" onclick="toggleFollow('${targetUid}')">${isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</button>
@@ -748,6 +818,14 @@
               <button class="btn-full" style="background:#666;color:#fff;margin-top:4px;" onclick="toggleBlock('${targetUid}')">${isBlocked ? 'إلغاء الحظر الشخصي' : 'حظر الشخص 🚫'}</button>
             `}
 
+            <!-- تبويبات الفيديوهات للملف الشخصي -->
+            <div class="profile-tabs">
+              <button class="profile-tab-btn active" id="p-tab-my" onclick="loadProfileVideosTab('${targetUid}', 'my')">فيديوهاتي</button>
+              <button class="profile-tab-btn" id="p-tab-reposts" onclick="loadProfileVideosTab('${targetUid}', 'reposts')">إعادة نشر</button>
+              <button class="profile-tab-btn" id="p-tab-likes" onclick="loadProfileVideosTab('${targetUid}', 'likes')">الإعجابات</button>
+            </div>
+            <div class="videos-grid" id="profile-videos-grid"></div>
+
             ${(userData.role === 'founder' || userData.role === 'helper') && !isSelf ? `
               <div style="margin-top:15px;width:100%;border-top:1px solid #eee;padding-top:10px;">
                 <b style="color:red;">لوحة الإدارة:</b>
@@ -755,6 +833,7 @@
                   ${userData.role === 'founder' ? `
                     <button class="btn-full" style="background:#2196F3;color:#fff;" onclick="toggleVerify('${targetUid}', ${!u.verified})">${u.verified ? 'إزالة التوثيق' : 'منح التوثيق الأزرق ✅'}</button>
                     <button class="btn-full" style="background:#333;color:#fff;" onclick="setRole('${targetUid}', 'helper')">تعيين Helper (توثيق أسود)</button>
+                    <button class="btn-full" style="background:#555;color:#fff;" onclick="removeHelperRole('${targetUid}')">إزالة Helper (إعادة لشخص عادي)</button>
                   ` : ''}
                   
                   ${u.isMuted ? `
@@ -777,7 +856,50 @@
             ` : ''}
           </div>
         `;
+
+        loadProfileVideosTab(targetUid, 'my');
       });
+    };
+
+    window.loadProfileVideosTab = (targetUid, tabType) => {
+      document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`p-tab-${tabType}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const grid = document.getElementById('profile-videos-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      onValue(ref(db, 'reels'), snap => {
+        grid.innerHTML = '';
+        if (!snap.exists()) return;
+
+        snap.forEach(child => {
+          const r = child.val();
+          let show = false;
+
+          if (tabType === 'my' && r.senderUid === targetUid) show = true;
+          else if (tabType === 'reposts' && r.reposts && r.reposts[targetUid]) show = true;
+          else if (tabType === 'likes' && r.likes && r.likes[targetUid]) show = true;
+
+          if (show) {
+            grid.innerHTML += `
+              <div class="video-grid-item">
+                <video src="${r.videoUrl}"></video>
+              </div>
+            `;
+          }
+        });
+      }, { onlyOnce: true });
+    };
+
+    window.removeHelperRole = async (targetUid) => {
+      await update(ref(db, `users/${targetUid}`), {
+        role: 'user',
+        verified: false
+      });
+      alert('تم إزالة رتبة Helper وإعادة الحساب لشخص عادي بدون توثيق أسود');
+      renderProfile(targetUid);
     };
 
     async function checkFollowStatus(targetUid) {
@@ -945,17 +1067,18 @@
       const box = document.getElementById('content-box');
       box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
       onValue(ref(db, 'tickets'), snap => {
+        box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
         snap.forEach(c => {
           const t = c.val();
           box.innerHTML += `
             <div class="user-item">
               <div>
-                <b>${t.creatorName}</b>: ${t.reason}<br>
+                <b>📄 ${t.creatorName}</b>: ${t.reason}<br>
                 <small style="color:#777;">المشكو ضد: ${t.targetUser || 'بلا'}</small>
               </div>
               <div style="display:flex;gap:4px;">
                 <button class="btn-send" onclick="switchTab('support_chat', '${c.key}')">محادثة</button>
-                <button style="background:red;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;" onclick="deleteTicket('${c.key}', '${t.creatorUid}')">حذف</button>
+                <button style="background:red;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;" onclick="deleteTicket('${c.key}', '${t.creatorUid}')">إزالة التكت 🗑️</button>
               </div>
             </div>
           `;
@@ -964,9 +1087,24 @@
     }
 
     window.deleteTicket = async (ticketId, creatorUid) => {
+      const ticketSnap = await get(ref(db, `tickets/${ticketId}`));
+      if (ticketSnap.exists()) {
+        const t = ticketSnap.val();
+        
+        // إرسال ملخص التكت لشات الإدارة
+        push(ref(db, 'messages/shield'), {
+          senderUid: currentUser.uid,
+          senderName: '🛠️ نظام التذاكر',
+          photo: 'https://via.placeholder.com/24',
+          text: `📄 [ملخص تذكرة مغلقة]\n👤 صاحب التكت: ${t.creatorName}\n🎯 المشكو ضد: ${t.targetUser || 'لا يوجد'}\n📝 المشكلة: ${t.reason}`,
+          image: t.proof || null,
+          timestamp: Date.now()
+        });
+      }
+
       await remove(ref(db, `tickets/${ticketId}`));
       await remove(ref(db, `user_tickets/${creatorUid}`));
-      alert('تم حذف التكت');
+      alert('تم إزالة التكت ونقل تفاصيله إلى شات الإدارة (الدرع)');
       if (userData.role === 'founder' || userData.role === 'helper') renderAdminSupportTickets();
       else switchTab('support');
     };
@@ -1032,6 +1170,8 @@
     window.openEditModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>تعديل الملف الشخصي</h3>
+        <img id="edit-profile-avatar-preview" src="${userData.photo || 'https://via.placeholder.com/85'}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:6px 0;">
+        <input type="file" id="edit-profile-photo" accept="image/*" class="form-input" onchange="previewProfileImage(this)">
         <input type="text" id="edit-name" class="form-input" value="${userData.name || ''}" placeholder="الاسم">
         <input type="text" id="edit-username" class="form-input" value="${userData.username || ''}" placeholder="اسم المستخدم">
         <textarea id="edit-bio" class="form-input" placeholder="الوصف">${userData.bio || ''}</textarea>
@@ -1041,19 +1181,36 @@
       document.getElementById('modal').style.display = 'flex';
     };
 
+    window.previewProfileImage = async (input) => {
+      if (input.files && input.files[0]) {
+        const base64 = await fileToBase64(input.files[0]);
+        document.getElementById('edit-profile-avatar-preview').src = base64;
+      }
+    };
+
     window.saveProfileChanges = async () => {
       const newName = document.getElementById('edit-name').value.trim();
       let newUsername = document.getElementById('edit-username').value.trim().replace('@', '');
       const newBio = document.getElementById('edit-bio').value.trim();
+      const photoFile = document.getElementById('edit-profile-photo').files[0];
 
       if (newUsername.length < 2) {
         alert('يجب أن يكون اسم المستخدم من حرفين أو أكثر!');
         return;
       }
 
-      update(ref(db, 'users/' + currentUser.uid), {
+      let updates = {
         name: newName, username: newUsername, bio: newBio
-      }).then(() => { closeModal(); renderProfile(currentUser.uid); });
+      };
+
+      if (photoFile) {
+        updates.photo = await fileToBase64(photoFile);
+      }
+
+      update(ref(db, 'users/' + currentUser.uid), updates).then(() => { 
+        closeModal(); 
+        renderProfile(currentUser.uid); 
+      });
     };
 
     function renderSearch() {
@@ -1120,7 +1277,10 @@
     <div class="header">
       <b id="user-header-info">Chatity</b>
       <div class="header-tools">
-        <button class="tool-icon-btn" onclick="openNotifications()">
+        <button class="tool-icon-btn" id="btn-admin-header" style="display:none;" onclick="switchTab('shield')" title="شات الإدارة">🛡️</button>
+        <button class="tool-icon-btn" onclick="switchTab('announcements')" title="الإعلانات">📢</button>
+        <button class="tool-icon-btn" onclick="switchTab('support')" title="الدعم الفني">🛠️</button>
+        <button class="tool-icon-btn" onclick="openNotifications()" title="الإشعارات">
           🔔
           <span id="notif-badge" class="notif-badge">0</span>
         </button>

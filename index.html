@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatity Super App</title>
+  <title>ItChat Super App</title>
   <style>
     :root { --primary: #075e54; --secondary: #128c7e; --bg: #efeae2; --accent: #fe2c55; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #f4f5f7; display: flex; justify-content: center; height: 100vh; }
+    body { background: #f4f5f7; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
     .app-container { width: 100%; max-width: 480px; background: #fff; display: flex; flex-direction: column; height: 100%; position: relative; }
     
     .header { background: var(--primary); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -27,6 +27,8 @@
 
     .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; position: relative; word-break: break-word; user-select: none; transition: background 0.3s; }
     .msg.me { margin-right: auto; background: #dcf8c6; }
+    .msg.founder-blue { background: #007bff !important; color: #fff !important; }
+    .msg.founder-blue .msg-header { color: #e0e0e0 !important; }
     .msg.highlight { animation: highlightAnim 1.5s ease; }
     @keyframes highlightAnim { 0% { background: #fff9c4; } 100% { background: inherit; } }
     
@@ -64,21 +66,29 @@
     .stat-box { text-align: center; }
     .stat-number { font-weight: bold; color: #000; display: block; }
 
-    .reels-container { display: flex; flex-direction: column; gap: 10px; snap-type: y mandatory; overflow-y: scroll; height: 100%; padding-bottom: 20px; }
-    .reel-card { snap-align: start; min-height: 85vh; background: #000; border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+    /* ريلز ItChat */
+    .reels-container { display: flex; flex-direction: column; gap: 0; snap-type: y mandatory; overflow-y: scroll; height: 100%; padding-bottom: 0; }
+    .reel-card { snap-align: start; min-height: 100%; height: 100%; background: #000; border-radius: 0; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
     .reel-card video { width: 100%; height: 100%; object-fit: cover; }
-    .reel-top-info { position: absolute; top: 15px; right: 15px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; z-index: 5; }
-    .reel-overlay { position: absolute; bottom: 15px; left: 15px; right: 15px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); display: flex; justify-content: space-between; align-items: flex-end; z-index: 5; }
-    .reel-info { flex: 1; padding-left: 10px; }
-    .reel-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-    .action-btn { background: rgba(0,0,0,0.5); border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; }
     
+    .reel-side-actions { position: absolute; left: 12px; bottom: 80px; display: flex; flex-direction: column; gap: 16px; align-items: center; z-index: 10; }
+    .side-action-btn { background: rgba(0,0,0,0.4); border: none; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 26px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+    .side-action-btn span { font-size: 11px; font-weight: bold; margin-top: 2px; }
+
+    .reel-user-avatar-container { position: relative; margin-bottom: 8px; }
+    .reel-user-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
+    .reel-follow-plus { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); background: #fe2c55; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #fff; }
+
+    .reel-bottom-info { position: absolute; bottom: 20px; right: 15px; left: 80px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); z-index: 5; text-align: right; }
+    .reel-bottom-info h4 { font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+    .reel-bottom-info p { font-size: 13px; line-height: 1.3; }
+
     .profile-tabs { display: flex; justify-content: space-around; width: 100%; margin-top: 10px; border-bottom: 1px solid #ddd; }
     .profile-tab-btn { background: none; border: none; padding: 8px; font-weight: bold; cursor: pointer; color: #666; font-size: 12px; }
     .profile-tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
     .videos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; margin-top: 8px; }
-    .video-grid-item { position: relative; width: 100%; height: 110px; background: #000; border-radius: 6px; overflow: hidden; }
-    .video-grid-item video { width: 100%; height: 100%; object-fit: cover; }
+    .video-grid-item { position: relative; width: 100%; height: 120px; background: #000; border-radius: 6px; overflow: hidden; cursor: pointer; }
+    .video-grid-item video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
   </style>
 
   <script type="module">
@@ -108,6 +118,7 @@
     let replyingTo = null;
     let mediaRecorder = null;
     let audioChunks = [];
+    let reelObserver = null;
 
     window.loginWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
     window.logout = () => signOut(auth);
@@ -171,15 +182,15 @@
         }
 
         document.getElementById('user-header-info').innerText = `${userData.name} [${userData.role || 'مستخدم'}]`;
-        document.getElementById('btn-admin-header').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
         document.getElementById('btn-shield').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
-        document.getElementById('btn-support-admin').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
+        
+        const founderBlueBtn = document.getElementById('btn-founder-blue');
+        if (founderBlueBtn) founderBlueBtn.style.display = (userData.role === 'founder') ? 'inline-block' : 'none';
       });
 
       set(ref(db, `online_status/${user.uid}`), true);
       onDisconnect(ref(db, `online_status/${user.uid}`)).remove();
 
-      listenNotifications();
       switchTab('public');
     }
 
@@ -215,8 +226,7 @@
       inputArea.style.display = canSend ? 'flex' : 'none';
 
       if (tab === 'reels') renderReelsSection();
-      else if (tab === 'search') renderSearch();
-      else if (tab === 'profile') renderProfile(currentUser.uid);
+      else if (tab === 'profile') renderProfile(targetId || currentUser.uid);
       else if (tab === 'inbox') renderInbox();
       else if (tab === 'dm') loadDMMessages(targetId);
       else if (tab === 'group') loadGroupMessages(targetId);
@@ -282,6 +292,22 @@
       document.getElementById('reply-preview-box').style.display = 'none';
     };
 
+    window.sendFounderMessage = () => {
+      if (userData.role !== 'founder') return;
+      const input = document.getElementById('msg-input');
+      if (!input.value.trim()) return;
+
+      postMessage({ 
+        text: input.value, 
+        isFounderBlue: true,
+        senderName: 'مجهول',
+        photo: 'https://via.placeholder.com/24/000000/FFFFFF?text=?'
+      });
+      input.value = '';
+      replyingTo = null;
+      document.getElementById('reply-preview-box').style.display = 'none';
+    };
+
     async function postMessage(content) {
       if (currentTab === 'dm') {
         const blockedSnap = await get(ref(db, `blocks/${activeDM}/${currentUser.uid}`));
@@ -292,11 +318,11 @@
       }
 
       const msgData = {
-        senderUid: currentUser.uid,
-        senderName: userData.name,
-        photo: userData.photo,
-        isVerified: !!userData.verified,
-        role: userData.role || 'user',
+        senderUid: content.isFounderBlue ? 'anonymous' : currentUser.uid,
+        senderName: content.senderName || userData.name,
+        photo: content.photo || userData.photo,
+        isVerified: content.isFounderBlue ? false : !!userData.verified,
+        role: content.isFounderBlue ? 'founder' : (userData.role || 'user'),
         timestamp: Date.now(),
         replyTo: replyingTo || null,
         ...content
@@ -307,7 +333,6 @@
         push(ref(db, `direct_messages/${chatKey}`), msgData);
         set(ref(db, `inbox/${currentUser.uid}/${activeDM}`), { lastUpdated: Date.now() });
         set(ref(db, `inbox/${activeDM}/${currentUser.uid}`), { lastUpdated: Date.now() });
-        push(ref(db, `notifications/${activeDM}`), { type: 'msg', fromName: userData.name, timestamp: Date.now() });
       } else if (currentTab === 'group') {
         push(ref(db, `group_messages/${activeGroup}`), msgData);
       } else if (currentTab === 'support_chat') {
@@ -343,7 +368,7 @@
         const isMyMsg = m.senderUid === currentUser.uid;
 
         const div = document.createElement('div');
-        div.className = `msg ${isMyMsg ? 'me' : ''}`;
+        div.className = `msg ${isMyMsg ? 'me' : ''} ${m.isFounderBlue ? 'founder-blue' : ''}`;
         div.id = `msg-${key}`;
 
         let canDelete = isMyMsg || 
@@ -370,7 +395,7 @@
           ${replyHtml}
           <div class="msg-header">
             <img src="${m.photo || 'https://via.placeholder.com/24'}" class="avatar-mini">
-            <span onclick="renderProfile('${m.senderUid}')" style="cursor:pointer">${m.senderName}</span>
+            <span onclick="${m.senderUid !== 'anonymous' ? `renderProfile('${m.senderUid}')` : ''}" style="cursor:pointer">${m.senderName}</span>
             ${badgeHtml}
             ${canDelete ? `<span onclick="deleteMsg('${key}')" style="color:red;cursor:pointer;margin-right:auto;">🗑️</span>` : ''}
           </div>
@@ -394,11 +419,8 @@
 
     function renderReelsSection() {
       const box = document.getElementById('content-box');
+      box.style.padding = '0';
       box.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h3>🎬 الريلز والفيديوهات (TikTok)</h3>
-          <button class="btn-send" onclick="openUploadReelModal()">+ نشر فيديو</button>
-        </div>
         <div class="reels-container" id="reels-list"></div>
       `;
 
@@ -408,7 +430,7 @@
         reelsList.innerHTML = '';
 
         if (!snapshot.exists()) {
-          reelsList.innerHTML = '<p style="text-align:center;padding:20px;">لا يوجد فيديوهات منشورة بعد</p>';
+          reelsList.innerHTML = '<p style="text-align:center;padding:20px;color:#888;">لا يوجد فيديوهات منشورة بعد</p>';
           return;
         }
 
@@ -422,13 +444,13 @@
           reelsArray.push(r);
         });
 
-        // خوارزمية الترتيب حسب زيادة نسبة الشهرة والتفاعل
         reelsArray.sort((a, b) => b.popularity - a.popularity);
 
-        reelsArray.forEach(reel => {
+        reelsArray.forEach(async reel => {
           const likesCount = reel.likes ? Object.keys(reel.likes).length : 0;
           const isLiked = reel.likes && reel.likes[currentUser.uid];
           const isReposted = reel.reposts && reel.reposts[currentUser.uid];
+          const isFollowing = await checkFollowStatus(reel.senderUid);
 
           let badge = '';
           if (reel.isVerified) badge += `<span class="badge-blue">✓</span>`;
@@ -436,39 +458,65 @@
 
           const card = document.createElement('div');
           card.className = 'reel-card';
+          card.id = `reel-card-${reel.key}`;
           card.innerHTML = `
-            <video src="${reel.videoUrl}" controls playsinline loop onclick="incrementReelView('${reel.key}')"></video>
+            <video src="${reel.videoUrl}" playsinline loop onclick="this.paused ? this.play() : this.pause()"></video>
             
-            <div class="reel-top-info" onclick="renderProfile('${reel.senderUid}')" style="cursor:pointer;">
-              <img src="${reel.senderPhoto || 'https://via.placeholder.com/28'}" class="avatar-mini">
-              <span>${reel.senderName}</span>
-              ${badge}
+            <div class="reel-side-actions">
+              <div class="reel-user-avatar-container">
+                <img src="${reel.senderPhoto || 'https://via.placeholder.com/48'}" class="reel-user-avatar" onclick="switchTab('profile', '${reel.senderUid}')">
+                ${(reel.senderUid !== currentUser.uid && !isFollowing) ? `<div class="reel-follow-plus" onclick="toggleFollow('${reel.senderUid}')">+</div>` : ''}
+              </div>
+
+              <button class="side-action-btn" onclick="toggleLikeReel('${reel.key}')">
+                ${isLiked ? '❤️' : '🤍'}
+                <span>${likesCount}</span>
+              </button>
+
+              <button class="side-action-btn" onclick="toggleRepostReel('${reel.key}')">
+                🔄
+                <span style="color:${isReposted ? '#4CAF50' : '#fff'};">${reel.reposts ? Object.keys(reel.reposts).length : 0}</span>
+              </button>
+
+              ${(reel.senderUid === currentUser.uid || userData.role === 'founder') ? `
+                <button class="side-action-btn" style="color:#f44336;" onclick="deleteReel('${reel.key}')">🗑️</button>
+              ` : ''}
             </div>
 
-            <div class="reel-overlay">
-              <div class="reel-info">
-                <p style="font-size:13px;font-weight:bold;">${reel.caption || ''}</p>
-              </div>
-              <div class="reel-actions">
-                <button class="action-btn" onclick="toggleLikeReel('${reel.key}')">
-                  ${isLiked ? '❤️' : '🤍'}
-                  <span style="font-size:10px;">${likesCount}</span>
-                </button>
-
-                <button class="action-btn" onclick="toggleRepostReel('${reel.key}')">
-                  🔄
-                  <span style="font-size:10px;color:${isReposted ? '#4CAF50' : '#fff'};">${reel.reposts ? Object.keys(reel.reposts).length : 0}</span>
-                </button>
-
-                ${(reel.senderUid === currentUser.uid || userData.role === 'founder') ? `
-                  <button class="action-btn" style="background:rgba(255,0,0,0.6);" onclick="deleteReel('${reel.key}')">🗑️</button>
-                ` : ''}
-              </div>
+            <div class="reel-bottom-info">
+              <h4 onclick="switchTab('profile', '${reel.senderUid}')" style="cursor:pointer;">
+                ${reel.senderName} ${badge}
+              </h4>
+              <p>${reel.caption || ''}</p>
             </div>
           `;
           reelsList.appendChild(card);
         });
+
+        initReelsAutoPlay();
       });
+    }
+
+    function initReelsAutoPlay() {
+      if (reelObserver) reelObserver.disconnect();
+
+      reelObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const video = entry.target.querySelector('video');
+          if (video) {
+            if (entry.isIntersecting) {
+              video.play().catch(()=>{});
+              const reelKey = entry.target.id.replace('reel-card-', '');
+              incrementReelView(reelKey);
+            } else {
+              video.pause();
+              video.currentTime = 0;
+            }
+          }
+        });
+      }, { threshold: 0.6 });
+
+      document.querySelectorAll('.reel-card').forEach(card => reelObserver.observe(card));
     }
 
     window.incrementReelView = (reelKey) => {
@@ -582,6 +630,7 @@
 
     function renderInbox() {
       const box = document.getElementById('content-box');
+      box.style.padding = '12px';
       box.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <h3>محادثاتي والكروبات 💬</h3>
@@ -638,6 +687,37 @@
       });
     }
 
+    window.openCreateGroupModal = () => {
+      document.getElementById('modal-content').innerHTML = `
+        <h3>إنشاء مجموعة جديدة 👥</h3>
+        <input type="text" id="new-group-name" class="form-input" placeholder="اسم الكروب">
+        <input type="file" id="new-group-photo" accept="image/*" class="form-input">
+        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="createGroup()">إنشاء الكروب</button>
+        <button class="btn-full" onclick="closeModal()">إلغاء</button>
+      `;
+      document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.createGroup = async () => {
+      const name = document.getElementById('new-group-name').value.trim();
+      const photoFile = document.getElementById('new-group-photo').files[0];
+      if (!name) { alert('يرجى كتابة اسم المجموعة'); return; }
+
+      let photoBase64 = '';
+      if (photoFile) photoBase64 = await fileToBase64(photoFile);
+
+      const groupRef = push(ref(db, 'groups'));
+      await set(groupRef, {
+        name: name,
+        photo: photoBase64,
+        owner: currentUser.uid,
+        members: { [currentUser.uid]: true }
+      });
+
+      closeModal();
+      switchTab('group', groupRef.key);
+    };
+
     async function loadGroupHeaderInfo(groupId) {
       const snap = await get(ref(db, `groups/${groupId}`));
       if (snap.exists()) {
@@ -669,9 +749,10 @@
         membersHtml += `
           <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0;font-size:12px;">
             <span>${isOnline ? '🟢' : '⚪'} ${u.name} <small>(${roleBadge})</small></span>
-            ${isGroupAdmin && uid !== currentUser.uid ? `
+            ${(isGroupAdmin && uid !== currentUser.uid && uid !== g.owner) ? `
               <div>
                 ${isOwner && !g.admins?.[uid] ? `<button onclick="setGroupAdmin('${uid}', true)">ترقية مشرف</button>` : ''}
+                ${isOwner && g.admins?.[uid] ? `<button onclick="demoteGroupAdmin('${uid}')">تنزيل رتبة</button>` : ''}
                 <button style="color:red;" onclick="kickGroupMember('${uid}')">طرد</button>
               </div>
             ` : ''}
@@ -726,8 +807,22 @@
       openGroupSettings();
     };
 
-    window.kickGroupMember = (uid) => {
+    window.demoteGroupAdmin = (uid) => {
+      remove(ref(db, `groups/${activeGroup}/admins/${uid}`));
+      openGroupSettings();
+    };
+
+    window.kickGroupMember = async (uid) => {
+      const gSnap = await get(ref(db, `groups/${activeGroup}`));
+      if (gSnap.exists()) {
+        const g = gSnap.val();
+        if (uid === g.owner) {
+          alert('لا يمكن طرد مالك الكروب!');
+          return;
+        }
+      }
       remove(ref(db, `groups/${activeGroup}/members/${uid}`));
+      remove(ref(db, `groups/${activeGroup}/admins/${uid}`));
       openGroupSettings();
     };
 
@@ -774,6 +869,7 @@
     window.renderProfile = async (targetUid) => {
       const isSelf = targetUid === currentUser.uid;
       const box = document.getElementById('content-box');
+      box.style.padding = '12px';
 
       onValue(ref(db, 'users/' + targetUid), async (snapshot) => {
         const u = snapshot.val() || {};
@@ -818,7 +914,6 @@
               <button class="btn-full" style="background:#666;color:#fff;margin-top:4px;" onclick="toggleBlock('${targetUid}')">${isBlocked ? 'إلغاء الحظر الشخصي' : 'حظر الشخص 🚫'}</button>
             `}
 
-            <!-- تبويبات الفيديوهات للملف الشخصي -->
             <div class="profile-tabs">
               <button class="profile-tab-btn active" id="p-tab-my" onclick="loadProfileVideosTab('${targetUid}', 'my')">فيديوهاتي</button>
               <button class="profile-tab-btn" id="p-tab-reposts" onclick="loadProfileVideosTab('${targetUid}', 'reposts')">إعادة نشر</button>
@@ -861,6 +956,32 @@
       });
     };
 
+    window.openEditModal = () => {
+      document.getElementById('modal-content').innerHTML = `
+        <h3>تعديل الملف الشخصي</h3>
+        <input type="text" id="edit-name" class="form-input" value="${userData.name || ''}" placeholder="الاسم">
+        <textarea id="edit-bio" class="form-input" placeholder="الوصف (البايو)">${userData.bio || ''}</textarea>
+        <input type="file" id="edit-photo" accept="image/*" class="form-input">
+        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="saveProfileChanges()">حفظ</button>
+        <button class="btn-full" onclick="closeModal()">إلغاء</button>
+      `;
+      document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.saveProfileChanges = async () => {
+      const name = document.getElementById('edit-name').value.trim();
+      const bio = document.getElementById('edit-bio').value.trim();
+      const photoFile = document.getElementById('edit-photo').files[0];
+
+      let updates = { name, bio };
+      if (photoFile) {
+        updates.photo = await fileToBase64(photoFile);
+      }
+
+      await update(ref(db, `users/${currentUser.uid}`), updates);
+      closeModal();
+    };
+
     window.loadProfileVideosTab = (targetUid, tabType) => {
       document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
       const activeBtn = document.getElementById(`p-tab-${tabType}`);
@@ -876,6 +997,7 @@
 
         snap.forEach(child => {
           const r = child.val();
+          const reelId = child.key;
           let show = false;
 
           if (tabType === 'my' && r.senderUid === targetUid) show = true;
@@ -884,13 +1006,29 @@
 
           if (show) {
             grid.innerHTML += `
-              <div class="video-grid-item">
+              <div class="video-grid-item" onclick="openVideoFromProfile('${reelId}')">
                 <video src="${r.videoUrl}"></video>
               </div>
             `;
           }
         });
       }, { onlyOnce: true });
+    };
+
+    window.openVideoFromProfile = (reelId) => {
+      switchTab('reels');
+      setTimeout(() => {
+        const el = document.getElementById(`reel-card-${reelId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    };
+
+    window.toggleVerify = (targetUid, status) => {
+      update(ref(db, `users/${targetUid}`), { verified: status });
+    };
+
+    window.setRole = (targetUid, role) => {
+      update(ref(db, `users/${targetUid}`), { role: role });
     };
 
     window.removeHelperRole = async (targetUid) => {
@@ -915,9 +1053,6 @@
       } else {
         set(ref(db, `following/${currentUser.uid}/${targetUid}`), true);
         set(ref(db, `followers/${targetUid}/${currentUser.uid}`), true);
-        push(ref(db, `notifications/${targetUid}`), {
-          type: 'follow', fromName: userData.name, timestamp: Date.now()
-        });
       }
       renderProfile(targetUid);
     };
@@ -978,7 +1113,7 @@
         senderUid: currentUser.uid,
         senderName: '🛡️ نظام الإدارة',
         photo: 'https://via.placeholder.com/24',
-        text: `⚠️ [إجراء إداري - ${type.toUpperCase()}]\n👤 المجهول/المستهدف: ${targetName}\n⏱️ المدة: ${timeStr || 'دائم'}\n📝 السبب: ${reason || 'بدون سبب'}`,
+        text: `⚠️ [إجراء إداري - ${type.toUpperCase()}]\n👤 المستهدف: ${targetName}\n⏱️ المدة: ${timeStr || 'دائم'}\n📝 السبب: ${reason || 'بدون سبب'}`,
         image: proofBase64 || null,
         timestamp: Date.now()
       });
@@ -1002,6 +1137,7 @@
 
     function renderSupportSection() {
       const box = document.getElementById('content-box');
+      box.style.padding = '12px';
       onValue(ref(db, `user_tickets/${currentUser.uid}`), async (snap) => {
         if (snap.exists()) {
           const ticketId = snap.val().activeTicketId;
@@ -1065,6 +1201,7 @@
 
     function renderAdminSupportTickets() {
       const box = document.getElementById('content-box');
+      box.style.padding = '12px';
       box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
       onValue(ref(db, 'tickets'), snap => {
         box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
@@ -1078,7 +1215,7 @@
               </div>
               <div style="display:flex;gap:4px;">
                 <button class="btn-send" onclick="switchTab('support_chat', '${c.key}')">محادثة</button>
-                <button style="background:red;color:#fff;border:none;padding:5px;border-radius:4px;cursor:pointer;" onclick="deleteTicket('${c.key}', '${t.creatorUid}')">إزالة التكت 🗑️</button>
+                <button style="background:red;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" onclick="deleteTicket('${c.key}')">حذف</button>
               </div>
             </div>
           `;
@@ -1086,250 +1223,106 @@
       });
     }
 
-    window.deleteTicket = async (ticketId, creatorUid) => {
-      const ticketSnap = await get(ref(db, `tickets/${ticketId}`));
-      if (ticketSnap.exists()) {
-        const t = ticketSnap.val();
-        
-        // إرسال ملخص التكت لشات الإدارة
-        push(ref(db, 'messages/shield'), {
-          senderUid: currentUser.uid,
-          senderName: '🛠️ نظام التذاكر',
-          photo: 'https://via.placeholder.com/24',
-          text: `📄 [ملخص تذكرة مغلقة]\n👤 صاحب التكت: ${t.creatorName}\n🎯 المشكو ضد: ${t.targetUser || 'لا يوجد'}\n📝 المشكلة: ${t.reason}`,
-          image: t.proof || null,
-          timestamp: Date.now()
-        });
+    window.deleteTicket = async (ticketId) => {
+      if (!confirm('هل تريد إغلاق وحذف التكت؟')) return;
+      const tSnap = await get(ref(db, `tickets/${ticketId}`));
+      if (tSnap.exists()) {
+        const creatorUid = tSnap.val().creatorUid;
+        remove(ref(db, `user_tickets/${creatorUid}`));
       }
-
-      await remove(ref(db, `tickets/${ticketId}`));
-      await remove(ref(db, `user_tickets/${creatorUid}`));
-      alert('تم إزالة التكت ونقل تفاصيله إلى شات الإدارة (الدرع)');
-      if (userData.role === 'founder' || userData.role === 'helper') renderAdminSupportTickets();
-      else switchTab('support');
-    };
-
-    function listenNotifications() {
-      onValue(ref(db, `notifications/${currentUser.uid}`), snapshot => {
-        const badge = document.getElementById('notif-badge');
-        if (snapshot.exists()) {
-          badge.style.display = 'block';
-          badge.innerText = snapshot.size;
-        } else {
-          badge.style.display = 'none';
-        }
-      });
-    }
-
-    window.openNotifications = () => {
-      onValue(ref(db, `notifications/${currentUser.uid}`), snapshot => {
-        let listHtml = '';
-        snapshot.forEach(c => {
-          const n = c.val();
-          listHtml += `<div style="padding:6px 0;border-bottom:1px solid #eee;font-size:13px;">${n.fromName} ${n.type === 'follow' ? 'قام بمتابعتك 👤' : 'أرسل لك رسالة 💬'}</div>`;
-        });
-
-        document.getElementById('modal-content').innerHTML = `
-          <h3>الإشعارات 🔔</h3>
-          <div style="max-height:200px;overflow-y:auto;">${listHtml || '<p>لا توجد إشعارات جديدة</p>'}</div>
-          <button class="btn-full" onclick="clearNotifs()">تم القراءة ومسح الكل</button>
-        `;
-        document.getElementById('modal').style.display = 'flex';
-      }, { onlyOnce: true });
-    };
-
-    window.clearNotifs = () => {
-      remove(ref(db, `notifications/${currentUser.uid}`));
-      document.getElementById('notif-badge').style.display = 'none';
-      closeModal();
-    };
-
-    window.openCreateGroupModal = () => {
-      document.getElementById('modal-content').innerHTML = `
-        <h3>إنشاء كروب جديد</h3>
-        <input type="text" id="group-name" class="form-input" placeholder="اسم الكروب">
-        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="createGroup()">إنشاء</button>
-        <button class="btn-full" onclick="closeModal()">إلغاء</button>
-      `;
-      document.getElementById('modal').style.display = 'flex';
-    };
-
-    window.createGroup = () => {
-      const name = document.getElementById('group-name').value.trim();
-      if (!name) return;
-      const gRef = push(ref(db, 'groups'));
-      set(gRef, {
-        name,
-        owner: currentUser.uid,
-        members: { [currentUser.uid]: true }
-      });
-      closeModal();
-      renderInbox();
-    };
-
-    window.openEditModal = () => {
-      document.getElementById('modal-content').innerHTML = `
-        <h3>تعديل الملف الشخصي</h3>
-        <img id="edit-profile-avatar-preview" src="${userData.photo || 'https://via.placeholder.com/85'}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin:6px 0;">
-        <input type="file" id="edit-profile-photo" accept="image/*" class="form-input" onchange="previewProfileImage(this)">
-        <input type="text" id="edit-name" class="form-input" value="${userData.name || ''}" placeholder="الاسم">
-        <input type="text" id="edit-username" class="form-input" value="${userData.username || ''}" placeholder="اسم المستخدم">
-        <textarea id="edit-bio" class="form-input" placeholder="الوصف">${userData.bio || ''}</textarea>
-        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="saveProfileChanges()">حفظ</button>
-        <button class="btn-full" onclick="closeModal()">إلغاء</button>
-      `;
-      document.getElementById('modal').style.display = 'flex';
-    };
-
-    window.previewProfileImage = async (input) => {
-      if (input.files && input.files[0]) {
-        const base64 = await fileToBase64(input.files[0]);
-        document.getElementById('edit-profile-avatar-preview').src = base64;
-      }
-    };
-
-    window.saveProfileChanges = async () => {
-      const newName = document.getElementById('edit-name').value.trim();
-      let newUsername = document.getElementById('edit-username').value.trim().replace('@', '');
-      const newBio = document.getElementById('edit-bio').value.trim();
-      const photoFile = document.getElementById('edit-profile-photo').files[0];
-
-      if (newUsername.length < 2) {
-        alert('يجب أن يكون اسم المستخدم من حرفين أو أكثر!');
-        return;
-      }
-
-      let updates = {
-        name: newName, username: newUsername, bio: newBio
-      };
-
-      if (photoFile) {
-        updates.photo = await fileToBase64(photoFile);
-      }
-
-      update(ref(db, 'users/' + currentUser.uid), updates).then(() => { 
-        closeModal(); 
-        renderProfile(currentUser.uid); 
-      });
-    };
-
-    function renderSearch() {
-      const box = document.getElementById('content-box');
-      box.innerHTML = `
-        <input type="text" class="form-input" placeholder="ابحث باسم المستخدم..." oninput="executeSearch(this.value)">
-        <div id="search-results" style="margin-top:10px;"></div>
-      `;
-    }
-
-    window.executeSearch = (val) => {
-      const res = document.getElementById('search-results');
-      if (!val.trim()) { res.innerHTML = ''; return; }
-      val = val.toLowerCase().replace('@', '');
-      onValue(ref(db, 'users'), (snapshot) => {
-        res.innerHTML = '';
-        snapshot.forEach((child) => {
-          const u = child.val();
-          if (u.username?.toLowerCase().includes(val) || u.name?.toLowerCase().includes(val)) {
-            res.innerHTML += `
-              <div class="user-item">
-                <div><b>${u.name}</b> <small>@${u.username}</small></div>
-                <button class="btn-send" onclick="renderProfile('${child.key}')">عرض</button>
-              </div>
-            `;
-          }
-        });
-      }, { onlyOnce: true });
+      remove(ref(db, `tickets/${ticketId}`));
+      renderAdminSupportTickets();
     };
 
     window.openLightbox = (src) => {
       document.getElementById('lightbox-img').src = src;
       document.getElementById('lightbox').style.display = 'flex';
     };
-    window.closeLightbox = () => document.getElementById('lightbox').style.display = 'none';
 
-    window.toggleVerify = (uid, status) => { update(ref(db, 'users/' + uid), { verified: status }); };
-    window.setRole = (uid, role) => { update(ref(db, 'users/' + uid), { role: role }); };
-    window.closeModal = () => document.getElementById('modal').style.display = 'none';
+    window.closeLightbox = () => {
+      document.getElementById('lightbox').style.display = 'none';
+    };
+
+    window.closeModal = () => {
+      document.getElementById('modal').style.display = 'none';
+    };
   </script>
 </head>
 <body>
 
-  <!-- شاشة تسجبل الدخول -->
-  <div id="login-screen" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;gap:15px;">
-    <h2>Chatity App</h2>
-    <button onclick="loginWithGoogle()" style="padding:10px 20px;background:#4285f4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:bold;">دخول بواسطة Google</button>
+  <!-- شاشة التسجيل -->
+  <div id="login-screen" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;width:100%;background:#fff;padding:20px;">
+    <h2 style="color:var(--primary);margin-bottom:10px;">ItChat Super App</h2>
+    <p style="color:#666;margin-bottom:20px;">قم بالتسجيل للدخول إلى المنصة</p>
+    <button onclick="loginWithGoogle()" style="background:var(--primary);color:#fff;border:none;padding:12px 24px;border-radius:25px;font-size:16px;cursor:pointer;font-weight:bold;">تسجيل الدخول عبر Google 🚀</button>
   </div>
 
-  <!-- شاشة إعداد الملف الشخصي الإجبارية -->
-  <div id="setup-profile-screen" style="display:none;flex-direction:column;justify-content:center;align-items:center;height:100vh;padding:20px;">
-    <div style="background:#fff;padding:20px;border-radius:12px;width:100%;max-width:320px;text-align:center;">
-      <h3>إعداد الحساب</h3>
-      <p style="font-size:12px;color:#666;margin-bottom:10px;">يرجى تحديد الاسم واسم المستخدم للبدء</p>
-      <input type="text" id="setup-name" class="form-input" placeholder="الاسم الكامل">
-      <input type="text" id="setup-username" class="form-input" placeholder="اسم المستخدم (Username)">
-      <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="completeProfileSetup()">حفظ والمتابعة</button>
-    </div>
+  <!-- شاشة ضبط الحساب أول مرة -->
+  <div id="setup-profile-screen" style="display:none;flex-direction:column;justify-content:center;align-items:center;height:100vh;width:100%;background:#fff;padding:20px;">
+    <h3>إعداد حسابك لأول مرة 👤</h3>
+    <input type="text" id="setup-name" class="form-input" placeholder="الاسم الظاهر">
+    <input type="text" id="setup-username" class="form-input" placeholder="اسم المستخدم (Username)">
+    <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="completeProfileSetup()">دخول التطبيق</button>
   </div>
 
-  <!-- واجهة التطبيق الرئيسية -->
+  <!-- الشاشة الرئيسية للتطبيق -->
   <div id="app-screen" class="app-container" style="display:none;">
     
+    <!-- الهيدر العلوي -->
     <div class="header">
-      <b id="user-header-info">Chatity</b>
+      <span id="user-header-info" style="font-weight:bold;font-size:14px;">ItChat</span>
       <div class="header-tools">
-        <button class="tool-icon-btn" id="btn-admin-header" style="display:none;" onclick="switchTab('shield')" title="شات الإدارة">🛡️</button>
-        <button class="tool-icon-btn" onclick="switchTab('announcements')" title="الإعلانات">📢</button>
+        <button class="tool-icon-btn" id="btn-shield" style="display:none;" onclick="switchTab('shield')" title="الدرع الإداري">🛡️</button>
         <button class="tool-icon-btn" onclick="switchTab('support')" title="الدعم الفني">🛠️</button>
-        <button class="tool-icon-btn" onclick="openNotifications()" title="الإشعارات">
-          🔔
-          <span id="notif-badge" class="notif-badge">0</span>
-        </button>
-        <button class="tool-icon-btn" onclick="logout()">🚪</button>
+        <button class="tool-icon-btn" onclick="logout()" title="خروج">🚪</button>
       </div>
     </div>
 
+    <!-- شريط تنقل الكروب -->
+    <div class="group-header" id="group-header">
+      <div class="group-info-btn" onclick="openGroupSettings()">
+        <img id="group-header-img" src="https://via.placeholder.com/36" class="group-avatar">
+        <b id="group-title-name">الكروب</b>
+      </div>
+      <button onclick="switchTab('inbox')" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">خروج 🏃</button>
+    </div>
+
+    <!-- تبويبات Nav Bar -->
     <div class="nav-tabs" id="nav-tabs">
-      <button class="tab-btn active" id="tab-public" onclick="switchTab('public')">العام</button>
+      <button class="tab-btn" id="tab-public" onclick="switchTab('public')">العام</button>
       <button class="tab-btn" id="tab-inbox" onclick="switchTab('inbox')">المحادثات</button>
-      <button class="tab-btn" id="tab-reels" onclick="switchTab('reels')">الريلز</button>
-      <button class="tab-btn" id="tab-announcements" onclick="switchTab('announcements')">الإعلانات</button>
-      <button class="tab-btn" id="tab-shield" style="display:none;" onclick="switchTab('shield')">الدرع</button>
-      <button class="tab-btn" id="tab-support" onclick="switchTab('support')">الدعم</button>
-      <button class="tab-btn" id="tab-support_admin" style="display:none;" onclick="switchTab('support_admin')">تذاكر الدعم</button>
-      <button class="tab-btn" id="tab-search" onclick="switchTab('search')">بحث</button>
+      <button class="tab-btn" id="tab-reposts" onclick="switchTab('announcements')">الإعلانات</button>
+      <button class="tab-btn" id="tab-reels" onclick="switchTab('reels')">ريلز ItChat</button>
       <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')">حسابي</button>
     </div>
 
-    <div class="group-header" id="group-header">
-      <div class="group-info-btn" onclick="openGroupSettings()">
-        <img id="group-header-img" class="group-avatar" src="https://via.placeholder.com/36">
-        <b id="group-title-name">اسم الكروب</b>
-      </div>
-      <button style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;" onclick="switchTab('inbox')">خروج ✖️</button>
-    </div>
-
+    <!-- منطقة المحتوى الرئيسية -->
     <div class="content-area" id="content-box"></div>
 
-    <div id="reply-preview-box" style="display:none;background:#e1f5fe;padding:6px;font-size:12px;border-top:1px solid #b3e5fc;"></div>
+    <!-- صندوق معاينة الرد -->
+    <div id="reply-preview-box" style="display:none;background:#e1f5fe;padding:6px 12px;font-size:12px;border-top:1px solid #b3e5fc;color:#0277bd;"></div>
 
+    <!-- منطقة أدوات الإدخال والدردشة -->
     <div class="input-area" id="input-area">
-      <label class="icon-btn">
+      <label class="icon-btn" style="cursor:pointer;">
         📷
         <input type="file" accept="image/*" style="display:none;" onchange="uploadImage(event)">
       </label>
       <button class="icon-btn" id="btn-voice" onclick="toggleVoiceRecording()">🎤</button>
       <input type="text" id="msg-input" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter') sendMessage()">
+      
+      <button class="btn-send" id="btn-founder-blue" style="display:none;background:#007bff;margin-left:4px;" onclick="sendFounderMessage()" title="إرسال مجهول زرقاء">🔵</button>
       <button class="btn-send" onclick="sendMessage()">إرسال</button>
     </div>
 
   </div>
 
-  <!-- Modal للهياكل التفاعلية -->
-  <div id="modal" class="modal">
+  <!-- النافذة المنبثقة Modal -->
+  <div class="modal" id="modal">
     <div class="modal-body" id="modal-content"></div>
   </div>
 
-  <!-- Lightbox لعرض الصور -->
+  <!-- عرض الصور Lightbox -->
   <div id="lightbox" onclick="closeLightbox()">
     <img id="lightbox-img" src="">
   </div>

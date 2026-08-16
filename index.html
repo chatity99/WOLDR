@@ -13,7 +13,7 @@
     .header { background: var(--primary); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
     .header-tools { display: flex; align-items: center; gap: 12px; }
     .tool-icon-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; position: relative; }
-    .notif-badge { position: absolute; top: -3px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 10px; padding: 1px 4px; font-weight: bold; }
+    .notif-badge { position: absolute; top: -3px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 10px; padding: 1px 4px; font-weight: bold; display: none; }
 
     .nav-tabs { display: flex; background: var(--secondary); overflow-x: auto; }
     .tab-btn { flex: 1; min-width: 65px; padding: 12px 6px; border: none; background: transparent; color: #fff; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; white-space: nowrap; }
@@ -21,8 +21,7 @@
 
     .content-area { flex: 1; overflow-y: auto; padding: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; position: relative; }
     
-    /* Group Header Overlay */
-    .group-header { display: flex; align-items: center; justify-content: space-between; background: var(--primary); color: #fff; padding: 8px 12px; }
+    .group-header { display: none; align-items: center; justify-content: space-between; background: var(--primary); color: #fff; padding: 8px 12px; }
     .group-info-btn { display: flex; align-items: center; gap: 10px; cursor: pointer; }
     .group-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 
@@ -37,7 +36,7 @@
     .badge-blue { background: #1da1f2; color: #fff; border-radius: 50%; padding: 0 4px; font-size: 10px; }
     .badge-black { background: #000; color: #fff; border-radius: 50%; padding: 0 4px; font-size: 10px; }
 
-    .msg img, .msg video { max-width: 100%; max-height: 220px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
+    .msg img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
     .reactions-list { display: flex; gap: 4px; font-size: 12px; margin-top: 4px; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 10px; width: fit-content; cursor: pointer; }
 
     .reply-preview { background: rgba(0,0,0,0.06); border-right: 3px solid var(--primary); padding: 4px 8px; font-size: 11px; border-radius: 4px; margin-bottom: 4px; opacity: 0.85; cursor: pointer; }
@@ -65,7 +64,6 @@
     .stat-box { text-align: center; }
     .stat-number { font-weight: bold; color: #000; display: block; }
 
-    /* Reels Section CSS */
     .reels-container { display: flex; flex-direction: column; gap: 20px; snap-type: y mandatory; overflow-y: scroll; height: 100%; padding-bottom: 20px; }
     .reel-card { snap-align: start; min-height: 80vh; background: #000; border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
     .reel-card video { width: 100%; height: 100%; object-fit: cover; }
@@ -164,7 +162,7 @@
           return;
         }
 
-        document.getElementById('user-header-info').innerText = `${userData.name} [${userData.role}]`;
+        document.getElementById('user-header-info').innerText = `${userData.name} [${userData.role || 'مستخدم'}]`;
         document.getElementById('btn-shield').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
         document.getElementById('btn-support-admin').style.display = (userData.role === 'founder' || userData.role === 'helper') ? 'inline-block' : 'none';
       });
@@ -229,25 +227,11 @@
     window.uploadImage = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { alert('حجم الصورة يجب أن لا يتجاوز 2 ميجابايت'); return; }
       try {
         const base64 = await fileToBase64(file);
         postMessage({ image: base64 });
       } catch (err) { alert('خطأ أثناء تحميل الصورة'); }
-    };
-
-    /* --- إرسال الفيديوهات الشات والجروبات --- */
-    window.uploadVideoMsg = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 20 * 1024 * 1024) {
-        alert('حجم الفيديو كبير جداً (الأقصى 20 ميجابايت)');
-        return;
-      }
-      try {
-        alert("جاري تحضير وإرسال الفيديو...");
-        const base64 = await fileToBase64(file);
-        postMessage({ video: base64 });
-      } catch (err) { alert('خطأ أثناء رفع الفيديو بالشات'); }
     };
 
     window.toggleVoiceRecording = async () => {
@@ -303,7 +287,7 @@
         senderName: userData.name,
         photo: userData.photo,
         isVerified: !!userData.verified,
-        role: userData.role,
+        role: userData.role || 'user',
         timestamp: Date.now(),
         replyTo: replyingTo || null,
         ...content
@@ -383,7 +367,6 @@
           </div>
           ${m.text ? `<div>${m.text.replace(/@everyone/g, '<b style="color:red;background:#fff0f0;padding:0 2px;">@everyone</b>')}</div>` : ''}
           ${m.image ? `<img src="${m.image}" onclick="openLightbox('${m.image}')">` : ''}
-          ${m.video ? `<video src="${m.video}" controls style="width:100%;border-radius:8px;margin-top:5px;"></video>` : ''}
           ${m.audio ? `<audio controls src="${m.audio}" style="max-width:200px;margin-top:5px;"></audio>` : ''}
           
           <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:#777;">
@@ -400,7 +383,6 @@
       box.scrollTop = box.scrollHeight;
     }
 
-    /* ---- Reels Section Logic ---- */
     function renderReelsSection() {
       const box = document.getElementById('content-box');
       box.innerHTML = `
@@ -457,7 +439,7 @@
         <h3>نشر فيديو ريلز جديد 🎬</h3>
         <input type="file" id="reel-file" accept="video/*" class="form-input">
         <input type="text" id="reel-caption" class="form-input" placeholder="الوصف أو التعليق...">
-        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="uploadReel()">نشر الأن 🚀</button>
+        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="uploadReel()">نشر الآن 🚀</button>
         <button class="btn-full" onclick="closeModal()">إلغاء</button>
       `;
       document.getElementById('modal').style.display = 'flex';
@@ -468,10 +450,9 @@
       const caption = document.getElementById('reel-caption').value.trim();
 
       if (!file) { alert('يرجى اختيار ملف فيديو!'); return; }
-      if (file.size > 20 * 1024 * 1024) { alert('حجم الفيديو كبير جداً (الأقصى 20 ميجابايت)'); return; }
+      if (file.size > 5 * 1024 * 1024) { alert('حجم الفيديو كبير جداً (الأقصى 5 ميجابايت عند رفع مقاطع كـ Base64)'); return; }
 
       try {
-        alert("جاري رفع ونشر الفيديو...");
         const videoBase64 = await fileToBase64(file);
         push(ref(db, 'reels'), {
           senderUid: currentUser.uid,
@@ -723,7 +704,6 @@
       openGroupSettings();
     };
 
-    /* --- عرض الملف الشخصي والمتابعين ونشر الريلز منه --- */
     window.renderProfile = async (targetUid) => {
       const isSelf = targetUid === currentUser.uid;
       const box = document.getElementById('content-box');
@@ -759,15 +739,7 @@
             <p style="font-size:13px;color:#444;margin:8px 0;">${u.bio || 'لا يوجد وصف'}</p>
 
             ${isSelf ? `
-              <button class="btn-full" style="background:#eee;" onclick="openEditModal()">تعديل الملف الشخصي (Edit)</button>
-
-              <!-- خيار رفع الريلز المباشر من البروفايل -->
-              <div style="width:100%;background:#f0f4f8;padding:10px;border-radius:8px;margin-top:10px;">
-                <b style="font-size:13px;display:block;margin-bottom:5px;">🎬 نشر فيديو جديد في الريلز:</b>
-                <input type="file" id="profile-reel-file" accept="video/*" class="form-input">
-                <input type="text" id="profile-reel-caption" class="form-input" placeholder="وصف الفيديو...">
-                <button class="btn-full" style="background:var(--accent);color:#fff;" onclick="uploadReelFromProfile()">نشر في قائمة الريلز 🚀</button>
-              </div>
+              <button class="btn-full" style="background:#eee;" onclick="openEditModal()">تعديل الملف الشخصي</button>
             ` : `
               <div style="display:flex;gap:6px;width:100%;margin-top:8px;">
                 <button class="btn-full" style="background:var(--accent);color:#fff;" onclick="toggleFollow('${targetUid}')">${isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</button>
@@ -806,28 +778,6 @@
           </div>
         `;
       });
-    };
-
-    window.uploadReelFromProfile = async () => {
-      const file = document.getElementById('profile-reel-file').files[0];
-      const caption = document.getElementById('profile-reel-caption').value.trim();
-
-      if (!file) { alert('يرجى اختيار فيديو أولاً!'); return; }
-      if (file.size > 20 * 1024 * 1024) { alert('حجم الفيديو كبير جداً (الأقصى 20 ميجابايت)'); return; }
-
-      try {
-        alert("جاري رفع الفيديو ونشره بالريلز...");
-        const videoBase64 = await fileToBase64(file);
-        push(ref(db, 'reels'), {
-          senderUid: currentUser.uid,
-          senderName: userData.name,
-          videoUrl: videoBase64,
-          caption: caption,
-          timestamp: Date.now()
-        });
-        alert('تم نشر الفيديو بنجاح في قسم الريلز العام! 🎉');
-        renderProfile(currentUser.uid);
-      } catch (err) { alert('حدث خطأ أثناء رفع الفيديو'); }
     };
 
     async function checkFollowStatus(targetUid) {
@@ -906,7 +856,7 @@
         senderUid: currentUser.uid,
         senderName: '🛡️ نظام الإدارة',
         photo: 'https://via.placeholder.com/24',
-        text: `⚠️ [إجراء إداري - ${type.toUpperCase()}]\n👤 المستهدف: ${targetName}\n⏱️ المدة: ${timeStr || 'دائم'}\n📝 السبب: ${reason || 'بدون سبب'}`,
+        text: `⚠️ [إجراء إداري - ${type.toUpperCase()}]\n👤 المجهول/المستهدف: ${targetName}\n⏱️ المدة: ${timeStr || 'دائم'}\n📝 السبب: ${reason || 'بدون سبب'}`,
         image: proofBase64 || null,
         timestamp: Date.now()
       });
@@ -1082,8 +1032,8 @@
     window.openEditModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>تعديل الملف الشخصي</h3>
-        <input type="text" id="edit-name" class="form-input" value="${userData.name}" placeholder="الاسم">
-        <input type="text" id="edit-username" class="form-input" value="${userData.username}" placeholder="اسم المستخدم">
+        <input type="text" id="edit-name" class="form-input" value="${userData.name || ''}" placeholder="الاسم">
+        <input type="text" id="edit-username" class="form-input" value="${userData.username || ''}" placeholder="اسم المستخدم">
         <textarea id="edit-bio" class="form-input" placeholder="الوصف">${userData.bio || ''}</textarea>
         <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="saveProfileChanges()">حفظ</button>
         <button class="btn-full" onclick="closeModal()">إلغاء</button>
@@ -1147,80 +1097,79 @@
 </head>
 <body>
 
-  <div class="app-container">
-    <!-- الهيدر الرئيسي -->
+  <!-- شاشة تسجبل الدخول -->
+  <div id="login-screen" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;gap:15px;">
+    <h2>Chatity App</h2>
+    <button onclick="loginWithGoogle()" style="padding:10px 20px;background:#4285f4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:bold;">دخول بواسطة Google</button>
+  </div>
+
+  <!-- شاشة إعداد الملف الشخصي الإجبارية -->
+  <div id="setup-profile-screen" style="display:none;flex-direction:column;justify-content:center;align-items:center;height:100vh;padding:20px;">
+    <div style="background:#fff;padding:20px;border-radius:12px;width:100%;max-width:320px;text-align:center;">
+      <h3>إعداد الحساب</h3>
+      <p style="font-size:12px;color:#666;margin-bottom:10px;">يرجى تحديد الاسم واسم المستخدم للبدء</p>
+      <input type="text" id="setup-name" class="form-input" placeholder="الاسم الكامل">
+      <input type="text" id="setup-username" class="form-input" placeholder="اسم المستخدم (Username)">
+      <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="completeProfileSetup()">حفظ والمتابعة</button>
+    </div>
+  </div>
+
+  <!-- واجهة التطبيق الرئيسية -->
+  <div id="app-screen" class="app-container" style="display:none;">
+    
     <div class="header">
-      <span id="user-header-info" style="font-weight:bold;font-size:14px;">Chatity App</span>
+      <b id="user-header-info">Chatity</b>
       <div class="header-tools">
         <button class="tool-icon-btn" onclick="openNotifications()">
-          🔔 <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
+          🔔
+          <span id="notif-badge" class="notif-badge">0</span>
         </button>
-        <button id="btn-shield" class="tool-icon-btn" style="display:none;" onclick="switchTab('shield')">🛡️</button>
-        <button id="btn-support-admin" class="tool-icon-btn" style="display:none;" onclick="switchTab('support_admin')">⚙️</button>
         <button class="tool-icon-btn" onclick="logout()">🚪</button>
       </div>
     </div>
 
-    <!-- هيدر المجموعة (يظهر عند المراسلة بالجروبات) -->
-    <div id="group-header" class="group-header" style="display:none;">
+    <div class="nav-tabs" id="nav-tabs">
+      <button class="tab-btn active" id="tab-public" onclick="switchTab('public')">العام</button>
+      <button class="tab-btn" id="tab-inbox" onclick="switchTab('inbox')">المحادثات</button>
+      <button class="tab-btn" id="tab-reels" onclick="switchTab('reels')">الريلز</button>
+      <button class="tab-btn" id="tab-announcements" onclick="switchTab('announcements')">الإعلانات</button>
+      <button class="tab-btn" id="tab-shield" style="display:none;" onclick="switchTab('shield')">الدرع</button>
+      <button class="tab-btn" id="tab-support" onclick="switchTab('support')">الدعم</button>
+      <button class="tab-btn" id="tab-support_admin" style="display:none;" onclick="switchTab('support_admin')">تذاكر الدعم</button>
+      <button class="tab-btn" id="tab-search" onclick="switchTab('search')">بحث</button>
+      <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')">حسابي</button>
+    </div>
+
+    <div class="group-header" id="group-header">
       <div class="group-info-btn" onclick="openGroupSettings()">
-        <img id="group-header-img" src="https://via.placeholder.com/36" class="group-avatar">
+        <img id="group-header-img" class="group-avatar" src="https://via.placeholder.com/36">
         <b id="group-title-name">اسم الكروب</b>
       </div>
-      <button class="tool-icon-btn" onclick="switchTab('inbox')">⬅️ رجوع</button>
+      <button style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;" onclick="switchTab('inbox')">خروج ✖️</button>
     </div>
 
-    <!-- أزرار القائمة الجانبية/التنقل -->
-    <div id="nav-tabs" class="nav-tabs">
-      <button id="tab-public" class="tab-btn active" onclick="switchTab('public')">الخادم العام</button>
-      <button id="tab-inbox" class="tab-btn" onclick="switchTab('inbox')">المحادثات</button>
-      <button id="tab-reels" class="tab-btn" onclick="switchTab('reels')">الريلز 🎬</button>
-      <button id="tab-search" class="tab-btn" onclick="switchTab('search')">بحث 🔍</button>
-      <button id="tab-support" class="tab-btn" onclick="switchTab('support')">الدعم 🛠️</button>
-      <button id="tab-profile" class="tab-btn" onclick="switchTab('profile')">بروفايلي</button>
-    </div>
+    <div class="content-area" id="content-box"></div>
 
-    <!-- منطقة المحتوى وعرض الرسائل -->
-    <div id="content-box" class="content-area"></div>
+    <div id="reply-preview-box" style="display:none;background:#e1f5fe;padding:6px;font-size:12px;border-top:1px solid #b3e5fc;"></div>
 
-    <!-- صندوق الرد والمعاينة -->
-    <div id="reply-preview-box" style="display:none;background:#e1f5fe;padding:6px;font-size:12px;border-right:3px solid #0288d1;margin:0 8px;"></div>
-
-    <!-- شريط إرسال الرسائل والميديا -->
-    <div id="input-area" class="input-area">
-      <input type="file" id="img-input" accept="image/*" style="display:none;" onchange="uploadImage(event)">
-      <button class="icon-btn" onclick="document.getElementById('img-input').click()">📷</button>
-      
-      <!-- زر إرسال فيديو للشات -->
-      <input type="file" id="video-input" accept="video/*" style="display:none;" onchange="uploadVideoMsg(event)">
-      <button class="icon-btn" onclick="document.getElementById('video-input').click()">🎥</button>
-
-      <button id="btn-voice" class="icon-btn" onclick="toggleVoiceRecording()">🎤</button>
+    <div class="input-area" id="input-area">
+      <label class="icon-btn">
+        📷
+        <input type="file" accept="image/*" style="display:none;" onchange="uploadImage(event)">
+      </label>
+      <button class="icon-btn" id="btn-voice" onclick="toggleVoiceRecording()">🎤</button>
       <input type="text" id="msg-input" placeholder="اكتب رسالة..." onkeypress="if(event.key==='Enter') sendMessage()">
       <button class="btn-send" onclick="sendMessage()">إرسال</button>
     </div>
+
   </div>
 
-  <!-- شاشة التسجيل -->
-  <div id="login-screen" style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;gap:15px;background:#fff;position:fixed;inset:0;z-index:999;">
-    <h2>Chatity Super App</h2>
-    <button onclick="loginWithGoogle()" style="padding:10px 20px;background:#4285f4;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:bold;">دخول بواسطة Google</button>
-  </div>
-
-  <!-- شاشة إعداد الحساب -->
-  <div id="setup-profile-screen" style="display:none;flex-direction:column;justify-content:center;align-items:center;height:100vh;padding:20px;background:#fff;position:fixed;inset:0;z-index:999;">
-    <h3>إكمال بيانات الحساب 👤</h3>
-    <input type="text" id="setup-name" class="form-input" placeholder="الاسم الظاهر">
-    <input type="text" id="setup-username" class="form-input" placeholder="اسم المستخدم (Username)">
-    <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="completeProfileSetup()">دخول التطبيق 🚀</button>
-  </div>
-
-  <!-- النافذة المنبثقة (Modal) -->
+  <!-- Modal للهياكل التفاعلية -->
   <div id="modal" class="modal">
-    <div id="modal-content" class="modal-body"></div>
+    <div class="modal-body" id="modal-content"></div>
   </div>
 
-  <!-- العرض المكبر للصور (Lightbox) -->
+  <!-- Lightbox لعرض الصور -->
   <div id="lightbox" onclick="closeLightbox()">
     <img id="lightbox-img" src="">
   </div>

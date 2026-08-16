@@ -1138,6 +1138,12 @@
     function renderSupportSection() {
       const box = document.getElementById('content-box');
       box.style.padding = '12px';
+
+      if (userData.role === 'founder' || userData.role === 'helper') {
+        renderAdminSupportTickets();
+        return;
+      }
+
       onValue(ref(db, `user_tickets/${currentUser.uid}`), async (snap) => {
         if (snap.exists()) {
           const ticketId = snap.val().activeTicketId;
@@ -1205,6 +1211,10 @@
       box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
       onValue(ref(db, 'tickets'), snap => {
         box.innerHTML = '<h3>قائمة تذاكر الدعم الفني 🛠️</h3>';
+        if (!snap.exists()) {
+          box.innerHTML += '<p style="font-size:12px;color:#777;margin-top:10px;">لا توجد تذاكر حالياً</p>';
+          return;
+        }
         snap.forEach(c => {
           const t = c.val();
           box.innerHTML += `
@@ -1291,7 +1301,7 @@
     <div class="nav-tabs" id="nav-tabs">
       <button class="tab-btn" id="tab-public" onclick="switchTab('public')">العام</button>
       <button class="tab-btn" id="tab-inbox" onclick="switchTab('inbox')">المحادثات</button>
-      <button class="tab-btn" id="tab-reposts" onclick="switchTab('announcements')">الإعلانات</button>
+      <button class="tab-btn" id="tab-announcements" onclick="switchTab('announcements')">الإعلانات</button>
       <button class="tab-btn" id="tab-reels" onclick="switchTab('reels')">ريلز ItChat</button>
       <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')">حسابي</button>
     </div>

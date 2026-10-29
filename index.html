@@ -24,7 +24,7 @@
     .group-info-btn { display: flex; align-items: center; gap: 10px; cursor: pointer; }
     .group-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
 
-    .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; position: relative; word-break: break-word; user-select: none; transition: background 0.3s; }
+    .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; position: relative; word-break: break-word; user-select: none; }
     .msg.me { margin-right: auto; background: #dcf8c6; }
     .msg.founder-blue { background: #007bff !important; color: #fff !important; width: 92% !important; margin: 8px auto !important; text-align: center !important; font-size: 15px !important; font-weight: bold; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
     .msg.founder-blue .msg-header { display: none !important; }
@@ -42,7 +42,7 @@
 
     .reply-preview { background: rgba(0,0,0,0.06); border-right: 3px solid var(--primary); padding: 4px 8px; font-size: 11px; border-radius: 4px; margin-bottom: 4px; opacity: 0.85; cursor: pointer; }
 
-    .input-area { padding: 8px; background: #f0f0f0; display: flex; gap: 6px; align-items: center; }
+    .input-area { padding: 8px; background: #f0f0f0; display: flex; gap: 6px; align-items: center; border-top: 1px solid #ccc; }
     .input-area input[type="text"] { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
     .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; }
     .btn-send { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-weight: bold; }
@@ -200,16 +200,15 @@
       const activeBtn = document.getElementById(`tab-${tab}`);
       if (activeBtn) activeBtn.classList.add('active');
 
-      // التحكم الدقيق بإظهار حقل الإرسال في جميع الأقسام حسب الصلاحيات
       const inputArea = document.getElementById('input-area');
       let canSend = false;
 
       if (tab === 'public' || tab === 'dm' || tab === 'group') {
         canSend = true;
       } else if (tab === 'announcements') {
-        canSend = (userData.role === 'founder'); // الإعلانات للمؤسس فقط
+        canSend = (userData.role === 'founder');
       } else if (tab === 'shield') {
-        canSend = (userData.role === 'founder' || userData.role === 'helper'); // شات الأدمن للإدارة فقط
+        canSend = (userData.role === 'founder' || userData.role === 'helper');
       }
 
       inputArea.style.display = canSend ? 'flex' : 'none';
@@ -395,11 +394,9 @@
         if (m.role === 'helper' && !m.isFounderBlue) badgeHtml += `<span class="badge-black">✓</span>`;
 
         let replyHtml = m.replyTo ? `<div class="reply-preview" onclick="scrollToMessage('${m.replyTo.key}')"><b>${m.replyTo.name}:</b> ${m.replyTo.text}</div>` : '';
-
         let myReaction = m.reactions ? m.reactions[currentUser.uid] : null;
 
         if (m.isFounderBlue) {
-          // رسالة المؤسس الزرقاء الصافية بالمنتصف بدون أي كلام إضافي أو أسماء
           div.innerHTML = `
             <div>${m.text}</div>
             <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:#e0e0e0;justify-content:center;">

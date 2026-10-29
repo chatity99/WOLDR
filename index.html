@@ -26,23 +26,23 @@
 
     .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; background: #fff; width: fit-content; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; position: relative; word-break: break-word; user-select: none; transition: background 0.3s; }
     .msg.me { margin-right: auto; background: #dcf8c6; }
-    .msg.founder-blue { background: #007bff !important; color: #fff !important; }
-    .msg.founder-blue .msg-header { color: #e0e0e0 !important; }
+    .msg.founder-blue { background: #007bff !important; color: #fff !important; width: 92% !important; margin: 8px auto !important; text-align: center !important; font-size: 15px !important; font-weight: bold; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .msg.founder-blue .msg-header { display: none !important; }
     .msg.highlight { animation: highlightAnim 1.5s ease; }
     @keyframes highlightAnim { 0% { background: #fff9c4; } 100% { background: inherit; } }
     
     .msg-header { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #555; }
     .avatar-mini { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
     
-    .badge-blue { background: #1da1f2; color: #fff; border-radius: 50%; padding: 0 4px; font-size: 10px; }
-    .badge-black { background: #000; color: #fff; border-radius: 50%; padding: 0 4px; font-size: 10px; }
+    .badge-blue { background: #1da1f2; color: #fff; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; margin-right: 2px; }
+    .badge-black { background: #000; color: #fff; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; margin-right: 2px; }
 
     .msg img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; }
     .reactions-list { display: flex; gap: 4px; font-size: 12px; margin-top: 4px; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 10px; width: fit-content; cursor: pointer; }
 
     .reply-preview { background: rgba(0,0,0,0.06); border-right: 3px solid var(--primary); padding: 4px 8px; font-size: 11px; border-radius: 4px; margin-bottom: 4px; opacity: 0.85; cursor: pointer; }
 
-    .input-area { padding: 8px; background: #f0f0f0; display: none; gap: 6px; align-items: center; }
+    .input-area { padding: 8px; background: #f0f0f0; display: flex; gap: 6px; align-items: center; }
     .input-area input[type="text"] { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
     .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; }
     .btn-send { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-weight: bold; }
@@ -121,6 +121,19 @@
         return;
       }
 
+      const allUsersSnap = await get(ref(db, 'users'));
+      let usernameExists = false;
+      if (allUsersSnap.exists()) {
+        allUsersSnap.forEach(child => {
+          if (child.val().username?.toLowerCase() === username) usernameExists = true;
+        });
+      }
+
+      if (usernameExists) {
+        alert('اسم المستخدم هذا مأخوذ بالكامل! اختر اسماً آخر.');
+        return;
+      }
+
       const initialData = {
         name: name,
         username: username,
@@ -130,7 +143,9 @@
         bio: 'أهلاً بك في حسابي!',
         isBanned: false,
         isMuted: false,
-        muteUntil: 0
+        muteUntil: 0,
+        lastNameChange: Date.now(),
+        lastUsernameChange: Date.now()
       };
 
       await set(ref(db, 'users/' + currentUser.uid), initialData);
@@ -248,6 +263,21 @@
         alert('أنت مكتوم حالياً ولا يمكنك إرسال الرسائل!');
         return;
       }
+
+      if (currentTab === 'group') {
+        get(ref(db, `groups/${activeGroup}/muted_members/${currentUser.uid}`)).then(snap => {
+          if (snap.exists() && snap.val() > Date.now()) {
+            alert('أنت مكتوم داخل هذا الكروب حالياً من قبل الإدارة!');
+            return;
+          }
+          executeSendMessage();
+        });
+      } else {
+        executeSendMessage();
+      }
+    };
+
+    function executeSendMessage() {
       const input = document.getElementById('msg-input');
       if (!input.value.trim()) return;
 
@@ -255,7 +285,7 @@
       input.value = '';
       replyingTo = null;
       document.getElementById('reply-preview-box').style.display = 'none';
-    };
+    }
 
     window.sendFounderMessage = () => {
       if (userData.role !== 'founder') return;
@@ -319,9 +349,16 @@
       onValue(q, snapshot => renderMessageList(snapshot));
     }
 
-    function renderMessageList(snapshot) {
+    async function renderMessageList(snapshot) {
       const box = document.getElementById('content-box');
       box.innerHTML = '';
+
+      let groupData = null;
+      if (currentTab === 'group') {
+        const gSnap = await get(ref(db, `groups/${activeGroup}`));
+        if (gSnap.exists()) groupData = gSnap.val();
+      }
+
       snapshot.forEach((child) => {
         const m = child.val();
         const key = child.key;
@@ -334,6 +371,19 @@
         let canDelete = isMyMsg || 
                         userData.role === 'founder' || 
                         (userData.role === 'helper' && m.role !== 'founder' && m.role !== 'helper');
+
+        if (currentTab === 'group' && groupData) {
+          const isGroupOwner = groupData.owner === currentUser.uid;
+          const isGroupAdmin = isGroupOwner || (groupData.admins && groupData.admins[currentUser.uid]);
+          const isMsgFromOwner = m.senderUid === groupData.owner;
+
+          if (isGroupAdmin && !isMsgFromOwner) {
+            canDelete = true;
+          }
+          if (!isGroupOwner && isMsgFromOwner) {
+            canDelete = isMyMsg;
+          }
+        }
 
         let badgeHtml = '';
         if (m.isVerified && !m.isFounderBlue) badgeHtml += `<span class="badge-blue">✓</span>`;
@@ -448,12 +498,16 @@
           const uSnap = await get(ref(db, 'users/' + targetUid));
           if (uSnap.exists()) {
             const u = uSnap.val();
+            let badge = '';
+            if (u.verified) badge += '<span class="badge-blue">✓</span>';
+            if (u.role === 'helper') badge += '<span class="badge-black">✓</span>';
+
             dBox.innerHTML += `
               <div class="user-item">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <img src="${u.photo || 'https://via.placeholder.com/35'}" style="width:35px;height:35px;border-radius:50%;object-fit:cover;">
                   <div>
-                    <b>${u.name}</b> ${u.verified ? '✅' : ''}<br>
+                    <b>${u.name}</b> ${badge}<br>
                     <small style="color:#777;">@${u.username}</small>
                   </div>
                 </div>
@@ -522,13 +576,16 @@
         if (uid === g.owner) roleBadge = '👑 صانع الكروب';
         else if (g.admins && g.admins[uid]) roleBadge = '⭐ مشرف';
 
+        const isMemberOwner = uid === g.owner;
+
         membersHtml += `
           <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0;font-size:12px;">
             <span>${u.name} <small>(${roleBadge})</small></span>
-            ${(isGroupAdmin && uid !== currentUser.uid && uid !== g.owner) ? `
-              <div>
+            ${(isGroupAdmin && uid !== currentUser.uid && !isMemberOwner) ? `
+              <div style="display:flex;gap:2px;">
                 ${isOwner && !g.admins?.[uid] ? `<button onclick="setGroupAdmin('${uid}', true)">ترقية مشرف</button>` : ''}
                 ${isOwner && g.admins?.[uid] ? `<button onclick="demoteGroupAdmin('${uid}')">تنزيل رتبة</button>` : ''}
+                ${isOwner ? `<button style="background:orange;color:#fff;" onclick="muteGroupMember('${uid}')">كتم 5د</button>` : ''}
                 <button style="color:red;" onclick="kickGroupMember('${uid}')">طرد</button>
               </div>
             ` : ''}
@@ -588,7 +645,22 @@
       openGroupSettings();
     };
 
+    window.muteGroupMember = (uid) => {
+      const muteUntil = Date.now() + (5 * 60 * 1000);
+      set(ref(db, `groups/${activeGroup}/muted_members/${uid}`), muteUntil);
+      alert('تم كتم العضو لمدة 5 دقائق داخل الكروب');
+      openGroupSettings();
+    };
+
     window.kickGroupMember = async (uid) => {
+      const gSnap = await get(ref(db, `groups/${activeGroup}`));
+      if (gSnap.exists()) {
+        const g = gSnap.val();
+        if (uid === g.owner) {
+          alert('لا يمكن طرد رئيس الكروب نهائياً!');
+          return;
+        }
+      }
       remove(ref(db, `groups/${activeGroup}/members/${uid}`));
       remove(ref(db, `groups/${activeGroup}/admins/${uid}`));
       openGroupSettings();
@@ -603,7 +675,7 @@
     window.openAddGroupMemberModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>إضافة عضو للكروب</h3>
-        <input type="text" class="form-input" placeholder="اسم المستخدم..." oninput="searchUserToAddGroup(this.value)">
+        <input type="text" class="form-input" placeholder="اسم المستخدم أو الاسم..." oninput="searchUserToAddGroup(this.value)">
         <div id="add-group-user-results"></div>
         <button class="btn-full" onclick="openGroupSettings()">رجوع</button>
       `;
@@ -619,7 +691,7 @@
       
       snap.forEach(c => {
         const u = c.val();
-        if (u.username?.toLowerCase().includes(queryVal)) {
+        if (u.username?.toLowerCase().includes(queryVal) || u.name?.toLowerCase().includes(queryVal)) {
           box.innerHTML += `
             <div class="user-item">
               <span>${u.name} (@${u.username})</span>
@@ -636,6 +708,45 @@
       openGroupSettings();
     };
 
+    window.openSearchModal = () => {
+      document.getElementById('modal-content').innerHTML = `
+        <h3>البحث عن أعضاء 🔍</h3>
+        <input type="text" class="form-input" placeholder="ابحث بالاسم أو اليوزر..." oninput="searchGlobalUsers(this.value)">
+        <div id="global-search-results" style="max-height:220px;overflow-y:auto;margin-top:8px;"></div>
+        <button class="btn-full" onclick="closeModal()">إغلاق</button>
+      `;
+      document.getElementById('modal').style.display = 'flex';
+    };
+
+    window.searchGlobalUsers = async (val) => {
+      const queryVal = val.trim().toLowerCase();
+      const box = document.getElementById('global-search-results');
+      if (!box) return;
+      if (!queryVal) { box.innerHTML = ''; return; }
+
+      const snap = await get(ref(db, 'users'));
+      box.innerHTML = '';
+      snap.forEach(child => {
+        const u = child.val();
+        const uid = child.key;
+        if (u.username?.toLowerCase().includes(queryVal) || u.name?.toLowerCase().includes(queryVal)) {
+          let badge = '';
+          if (u.verified) badge += '<span class="badge-blue">✓</span>';
+          if (u.role === 'helper') badge += '<span class="badge-black">✓</span>';
+
+          box.innerHTML += `
+            <div class="user-item">
+              <div>
+                <b>${u.name}</b> ${badge}<br>
+                <small style="color:#777;">@${u.username}</small>
+              </div>
+              <button class="btn-send" onclick="closeModal();renderProfile('${uid}')">عرض الملف</button>
+            </div>
+          `;
+        }
+      });
+    };
+
     window.renderProfile = async (targetUid) => {
       const isSelf = targetUid === currentUser.uid;
       const box = document.getElementById('content-box');
@@ -648,15 +759,17 @@
         const isTargetFounder = u.role === 'founder';
         const isMeHelper = userData.role === 'helper';
 
+        let badgeHtml = '';
+        if (u.verified) badgeHtml += '<span class="badge-blue">✓</span>';
+        if (u.role === 'helper') badgeHtml += '<span class="badge-black">✓</span>';
+
         box.innerHTML = `
           <div class="profile-card">
             <button class="btn-close-profile" onclick="switchTab('public')">✖️</button>
             <img src="${u.photo || 'https://via.placeholder.com/85'}" class="profile-avatar">
             
             <h3>
-              ${u.name} 
-              ${u.verified ? '<span class="badge-blue">✓</span>' : ''}
-              ${u.role === 'helper' ? '<span class="badge-black">✓</span>' : ''}
+              ${u.name} ${badgeHtml}
             </h3>
             <span style="color:#777;font-size:12px;">@${u.username}</span>
 
@@ -707,10 +820,11 @@
     window.openEditModal = () => {
       document.getElementById('modal-content').innerHTML = `
         <h3>تعديل الملف الشخصي</h3>
-        <input type="text" id="edit-name" class="form-input" value="${userData.name || ''}" placeholder="الاسم">
+        <input type="text" id="edit-name" class="form-input" value="${userData.name || ''}" placeholder="الاسم الظاهر">
+        <input type="text" id="edit-username" class="form-input" value="${userData.username || ''}" placeholder="اسم المستخدم (Username)">
         <textarea id="edit-bio" class="form-input" placeholder="الوصف (البايو)">${userData.bio || ''}</textarea>
         <input type="file" id="edit-photo" accept="image/*" class="form-input">
-        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="saveProfileChanges()">حفظ</button>
+        <button class="btn-full" style="background:var(--primary);color:#fff;" onclick="saveProfileChanges()">حفظ التغيرات</button>
         <button class="btn-full" onclick="closeModal()">إلغاء</button>
       `;
       document.getElementById('modal').style.display = 'flex';
@@ -718,15 +832,63 @@
 
     window.saveProfileChanges = async () => {
       const name = document.getElementById('edit-name').value.trim();
+      const username = document.getElementById('edit-username').value.trim().toLowerCase().replace('@', '');
       const bio = document.getElementById('edit-bio').value.trim();
       const photoFile = document.getElementById('edit-photo').files[0];
 
-      let updates = { name, bio };
+      if (!name || username.length < 2) {
+        alert('يرجى كتابة اسم واسم مستخدم صالح (حرفين أو أكثر)');
+        return;
+      }
+
+      const now = Date.now();
+      const nameCooldown = 3 * 24 * 60 * 60 * 1000;
+      const usernameCooldown = 4 * 24 * 60 * 60 * 1000;
+
+      let updates = { bio };
+
+      if (name !== userData.name) {
+        if (userData.lastNameChange && (now - userData.lastNameChange < nameCooldown)) {
+          const remainingDays = Math.ceil((nameCooldown - (now - userData.lastNameChange)) / (24 * 60 * 60 * 1000));
+          alert(`لا يمكنك تغيير الاسم الظاهر الآن! انتظر ${remainingDays} أيام جديدة.`);
+          return;
+        }
+        updates.name = name;
+        updates.lastNameChange = now;
+      }
+
+      if (username !== userData.username) {
+        if (userData.lastUsernameChange && (now - userData.lastUsernameChange < usernameCooldown)) {
+          const remainingDays = Math.ceil((usernameCooldown - (now - userData.lastUsernameChange)) / (24 * 60 * 60 * 1000));
+          alert(`لا يمكنك تغيير اسم المستخدم الآن! انتظر ${remainingDays} أيام جديدة.`);
+          return;
+        }
+
+        const allUsersSnap = await get(ref(db, 'users'));
+        let usernameExists = false;
+        if (allUsersSnap.exists()) {
+          allUsersSnap.forEach(child => {
+            if (child.key !== currentUser.uid && child.val().username?.toLowerCase() === username) {
+              usernameExists = true;
+            }
+          });
+        }
+
+        if (usernameExists) {
+          alert('اسم المستخدم هذا مستخدم بالفعل من قِبل عضو آخر!');
+          return;
+        }
+
+        updates.username = username;
+        updates.lastUsernameChange = now;
+      }
+
       if (photoFile) {
         updates.photo = await fileToBase64(photoFile);
       }
 
       await update(ref(db, `users/${currentUser.uid}`), updates);
+      alert('تم حفظ التعديلات بنجاح!');
       closeModal();
     };
 
@@ -735,7 +897,7 @@
     };
 
     window.setRole = (targetUid, role) => {
-      update(ref(db, `users/${targetUid}`), { role: role });
+      update(ref(db, `users/${targetUid}`), { role: role, verified: false });
     };
 
     window.removeHelperRole = async (targetUid) => {
@@ -856,7 +1018,8 @@
     <div class="header">
       <div id="user-header-info" style="font-weight:bold;font-size:14px;">ItChat</div>
       <div class="header-tools">
-        <button id="btn-founder-blue" class="tool-icon-btn" style="display:none;" onclick="sendFounderMessage()" title="إرسال كمؤسس (أزرق)">🟦</button>
+        <button class="tool-icon-btn" onclick="openSearchModal()" title="بحث عن مستخدم">🔍</button>
+        <button id="btn-founder-blue" class="tool-icon-btn" style="display:none;" onclick="sendFounderMessage()" title="إرسال رسالة زرقاء مجهولة">🟦</button>
         <button id="btn-shield" class="tool-icon-btn" style="display:none;" onclick="switchTab('shield')" title="درع الإدارة">🛡️</button>
         <button class="tool-icon-btn" onclick="logout()" title="تسجيل الخروج">🚪</button>
       </div>

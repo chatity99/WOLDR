@@ -130,7 +130,7 @@
       }
 
       if (usernameExists) {
-        alert('اسم المستخدم هذا مأخوذ بالكامل! اختر اسماً آخر.');
+        alert('اسم المستخدم هذا مأخوذ بالفعل! اختر اسماً آخر.');
         return;
       }
 
@@ -200,12 +200,17 @@
       const activeBtn = document.getElementById(`tab-${tab}`);
       if (activeBtn) activeBtn.classList.add('active');
 
+      // التحقق من صلاحية ظهور حقل الإرسال بناءً على نوع التبويب وصلاحيات المستخدم
       const inputArea = document.getElementById('input-area');
-      const canSend = (tab === 'public') ||
-                      (tab === 'dm') ||
-                      (tab === 'group') ||
-                      (tab === 'announcements' && userData.role === 'founder') ||
-                      (tab === 'shield' && (userData.role === 'founder' || userData.role === 'helper'));
+      let canSend = false;
+
+      if (tab === 'public' || tab === 'dm' || tab === 'group') {
+        canSend = true;
+      } else if (tab === 'announcements') {
+        canSend = (userData.role === 'founder'); // فقط المؤسس يكتب في الإعلانات
+      } else if (tab === 'shield') {
+        canSend = (userData.role === 'founder' || userData.role === 'helper'); // فقط الإدارة تراسل في شات الأدمن
+      }
 
       inputArea.style.display = canSend ? 'flex' : 'none';
 
@@ -393,27 +398,39 @@
 
         let myReaction = m.reactions ? m.reactions[currentUser.uid] : null;
 
-        div.innerHTML = `
-          ${replyHtml}
-          <div class="msg-header">
-            <img src="${m.photo || 'https://via.placeholder.com/24'}" class="avatar-mini">
-            <span onclick="renderProfile('${m.senderUid}')" style="cursor:pointer">${m.senderName}</span>
-            ${badgeHtml}
-            ${canDelete ? `<span onclick="deleteMsg('${key}')" style="color:red;cursor:pointer;margin-right:auto;">🗑️</span>` : ''}
-          </div>
-          ${m.text ? `<div>${m.text.replace(/@everyone/g, '<b style="color:red;background:#fff0f0;padding:0 2px;">@everyone</b>')}</div>` : ''}
-          ${m.image ? `<img src="${m.image}" onclick="openLightbox('${m.image}')">` : ''}
-          ${m.audio ? `<audio controls src="${m.audio}" style="max-width:200px;margin-top:5px;"></audio>` : ''}
-          
-          <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:#777;">
-            <span onclick="setReply('${key}', '${m.senderName}', '${m.text || 'صورة/صوت'}')" style="cursor:pointer;">رد ↩️</span>
-            <span onclick="toggleReaction('${key}', '❤️')" style="cursor:pointer;">❤️</span>
-            <span onclick="toggleReaction('${key}', '👍')" style="cursor:pointer;">👍</span>
-            <span onclick="toggleReaction('${key}', '😂')" style="cursor:pointer;">😂</span>
-          </div>
+        if (m.isFounderBlue) {
+          div.innerHTML = `
+            <div>${m.text}</div>
+            <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:#e0e0e0;justify-content:center;">
+              <span onclick="toggleReaction('${key}', '❤️')" style="cursor:pointer;">❤️</span>
+              <span onclick="toggleReaction('${key}', '👍')" style="cursor:pointer;">👍</span>
+              <span onclick="toggleReaction('${key}', '😂')" style="cursor:pointer;">😂</span>
+            </div>
+            ${myReaction ? `<div class="reactions-list" style="margin:auto;" onclick="toggleReaction('${key}', '${myReaction}')">${myReaction}</div>` : ''}
+          `;
+        } else {
+          div.innerHTML = `
+            ${replyHtml}
+            <div class="msg-header">
+              <img src="${m.photo || 'https://via.placeholder.com/24'}" class="avatar-mini">
+              <span onclick="renderProfile('${m.senderUid}')" style="cursor:pointer">${m.senderName}</span>
+              ${badgeHtml}
+              ${canDelete ? `<span onclick="deleteMsg('${key}')" style="color:red;cursor:pointer;margin-right:auto;">🗑️</span>` : ''}
+            </div>
+            ${m.text ? `<div>${m.text.replace(/@everyone/g, '<b style="color:red;background:#fff0f0;padding:0 2px;">@everyone</b>')}</div>` : ''}
+            ${m.image ? `<img src="${m.image}" onclick="openLightbox('${m.image}')">` : ''}
+            ${m.audio ? `<audio controls src="${m.audio}" style="max-width:200px;margin-top:5px;"></audio>` : ''}
+            
+            <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:#777;">
+              <span onclick="setReply('${key}', '${m.senderName}', '${m.text || 'صورة/صوت'}')" style="cursor:pointer;">رد ↩️</span>
+              <span onclick="toggleReaction('${key}', '❤️')" style="cursor:pointer;">❤️</span>
+              <span onclick="toggleReaction('${key}', '👍')" style="cursor:pointer;">👍</span>
+              <span onclick="toggleReaction('${key}', '😂')" style="cursor:pointer;">😂</span>
+            </div>
 
-          ${myReaction ? `<div class="reactions-list" onclick="toggleReaction('${key}', '${myReaction}')">${myReaction}</div>` : ''}
-        `;
+            ${myReaction ? `<div class="reactions-list" onclick="toggleReaction('${key}', '${myReaction}')">${myReaction}</div>` : ''}
+          `;
+        }
         box.appendChild(div);
       });
       box.scrollTop = box.scrollHeight;
@@ -947,25 +964,35 @@
       else if (timeStr.endsWith('d')) durationMs = parseInt(timeStr) * 24 * 60 * 60 * 1000;
       else durationMs = (parseInt(timeStr) || 10) * 60 * 1000;
 
+      const targetSnap = await get(ref(db, 'users/' + targetUid));
+      const targetName = targetSnap.exists() ? targetSnap.val().name : targetUid;
+
       if (type === 'mute') {
         await update(ref(db, `users/${targetUid}`), {
           isMuted: true,
           muteUntil: Date.now() + durationMs,
           muteReason: reason
         });
-        alert('تم كتم المستخدم بنجاح');
       } else if (type === 'ban') {
         await update(ref(db, `users/${targetUid}`), {
           isBanned: true,
           banReason: reason
         });
-        alert('تم حظر الحساب بنجاح');
       } else if (type === 'delete') {
         if (confirm('هل أنت متأكد من حذف الحساب نهائياً؟')) {
           await remove(ref(db, `users/${targetUid}`));
-          alert('تم حذف الحساب بالكامل');
         }
       }
+
+      push(ref(db, 'messages/shield'), {
+        senderUid: currentUser.uid,
+        senderName: '🛡️ نظام الإدارة',
+        photo: 'https://via.placeholder.com/24',
+        text: `⚠️ [إجراء إداري - ${type.toUpperCase()}]\n👤 المستهدف: ${targetName}\n⏱️ المدة: ${timeStr || 'دائم'}\n📝 السبب: ${reason || 'بدون سبب'}`,
+        timestamp: Date.now()
+      });
+
+      alert('تم تطبيق العقوبة وإرسال الإشعار لشات الأدمن');
       closeModal();
       renderProfile(targetUid);
     };

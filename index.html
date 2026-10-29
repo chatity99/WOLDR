@@ -200,16 +200,16 @@
       const activeBtn = document.getElementById(`tab-${tab}`);
       if (activeBtn) activeBtn.classList.add('active');
 
-      // التحقق من صلاحية ظهور حقل الإرسال بناءً على نوع التبويب وصلاحيات المستخدم
+      // التحكم الدقيق بإظهار حقل الإرسال في جميع الأقسام حسب الصلاحيات
       const inputArea = document.getElementById('input-area');
       let canSend = false;
 
       if (tab === 'public' || tab === 'dm' || tab === 'group') {
         canSend = true;
       } else if (tab === 'announcements') {
-        canSend = (userData.role === 'founder'); // فقط المؤسس يكتب في الإعلانات
+        canSend = (userData.role === 'founder'); // الإعلانات للمؤسس فقط
       } else if (tab === 'shield') {
-        canSend = (userData.role === 'founder' || userData.role === 'helper'); // فقط الإدارة تراسل في شات الأدمن
+        canSend = (userData.role === 'founder' || userData.role === 'helper'); // شات الأدمن للإدارة فقط
       }
 
       inputArea.style.display = canSend ? 'flex' : 'none';
@@ -399,6 +399,7 @@
         let myReaction = m.reactions ? m.reactions[currentUser.uid] : null;
 
         if (m.isFounderBlue) {
+          // رسالة المؤسس الزرقاء الصافية بالمنتصف بدون أي كلام إضافي أو أسماء
           div.innerHTML = `
             <div>${m.text}</div>
             <div style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:#e0e0e0;justify-content:center;">
